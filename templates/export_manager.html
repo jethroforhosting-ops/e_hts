@@ -39,7 +39,7 @@
             <div>
                 <a href="/" class="btn btn-outline-light btn-sm mb-2">← BACK TO PORTAL</a>
                 <h2 class="fw-bold text-amber-custom" style="font-family: 'Cinzel', serif;">EXPORT & SYNC MANAGER</h2>
-                <p class="text-white-50 small mb-0">Manage screening results, sync SQLite & browser records, and export printable DOH checklists.</p>
+                <p class="text-white-50 small mb-0">Manage screening results, sync local storage & database records, and export printable DOH checklists.</p>
             </div>
             <div class="d-flex gap-2">
                 <button id="btn-sync-unpushed" class="btn btn-outline-warning fw-bold px-3">
@@ -90,7 +90,16 @@
             return orderVal ? String(orderVal).trim().padStart(2, '0') : "01";
         }
 
-        // --- INDEXEDDB HELPER FOR LOCAL BROWSER STORAGE ---
+        // --- BROWSER LOCAL STORAGE READERS ---
+        function getLocalStorageRecords() {
+            try {
+                const raw = localStorage.getItem('offline_hts_records') || '[]';
+                return JSON.parse(raw);
+            } catch (e) {
+                return [];
+            }
+        }
+
         function openIDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open('HTS_PWA_DB', 1);
@@ -117,6 +126,20 @@
 
         async function updateRecordResult(recordId, newResult) {
             if (!newResult) return;
+
+            // Handle LocalStorage record result update
+            if (String(recordId).startsWith('local_')) {
+                const localIndex = parseInt(recordId.replace('local_', ''), 10);
+                const localRecords = getLocalStorageRecords();
+                if (localRecords[localIndex]) {
+                    localRecords[localIndex].linkage_result = newResult;
+                    localStorage.setItem('offline_hts_records', JSON.stringify(localRecords));
+                    console.log(`Updated localStorage record #${localIndex} result to ${newResult}`);
+                }
+                return;
+            }
+
+            // Handle Server / Database record result update
             try {
                 const response = await fetch(`/api/records/${recordId}/update-linkage`, {
                     method: 'POST',
@@ -135,19 +158,31 @@
             }
         }
 
+        async function pushLocalRecordToBackend(item) {
+            const response = await fetch('/api/sqlite/save-offline', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(item)
+            });
+            return await response.json();
+        }
+
         async function loadRecords() {
             const tableBody = document.getElementById('export-table-body');
             const unsyncedSpan = document.getElementById('unsynced-count');
 
             try {
-                // Fetch SQLite / Firebase backend records
+                // 1. Fetch Backend SQLite / Firebase records
                 const res = await fetch('/api/my-hts-records');
                 const serverRecords = await res.json() || [];
 
-                // Fetch local Browser Storage (IndexedDB) records
-                const localBrowserRecords = await getIndexedDBRecords();
+                // 2. Fetch Browser Local Storage (localStorage + IndexedDB)
+                const localStorageRecords = getLocalStorageRecords();
+                const localIndexedRecords = await getIndexedDBRecords();
 
-                if (serverRecords.length === 0 && localBrowserRecords.length === 0) {
+                const totalLocalCount = localStorageRecords.length + localIndexedRecords.length;
+
+                if (serverRecords.length === 0 && totalLocalCount === 0) {
                     tableBody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-white-50">No intake records available.</td></tr>';
                     unsyncedSpan.innerText = '0';
                     return;
@@ -156,11 +191,12 @@
                 tableBody.innerHTML = '';
                 let unsyncedCounter = 0;
 
-                // 1. Render Browser Local Storage Records (Unsynced PWA Entries)
-                localBrowserRecords.forEach(item => {
+                // A. Render LocalStorage Items
+                localStorageRecords.forEach((item, index) => {
                     unsyncedCounter++;
-                    const id = `idb_${item.local_id}`;
-                    
+                    const id = `local_${index}`;
+                    const currentResult = item.linkage_result || item.result || '';
+
                     let uic = item.uic;
                     if (!uic) {
                         const mCode = (item.mother_code || '').toUpperCase();
@@ -182,16 +218,56 @@
                         <td class="px-3 font-monospace">${item.test_date || 'N/A'}</td>
                         <td class="px-3 fw-bold text-amber-custom font-monospace">${uic}</td>
                         <td class="px-3">
-                            <span class="badge bg-secondary">Pending Sync</span>
+                            <select class="form-select form-select-sm result-select" data-id="${id}">
+                                <option value="" ${!currentResult ? 'selected' : ''}>PENDING EVALUATION</option>
+                                <option value="NONREACTIVE" ${currentResult === 'NONREACTIVE' ? 'selected' : ''}>NONREACTIVE</option>
+                                <option value="REACTIVE" ${currentResult === 'REACTIVE' ? 'selected' : ''}>REACTIVE</option>
+                                <option value="INVALID" ${currentResult === 'INVALID' ? 'selected' : ''}>INVALID</option>
+                            </select>
                         </td>
                         <td class="px-3 text-end">
-                            <button class="btn btn-sm btn-outline-warning btn-single-sync" data-id="${item.local_id}">Sync Now</button>
+                            <button class="btn btn-sm btn-outline-warning btn-single-sync-local" data-index="${index}">Sync Now</button>
                         </td>
                     `;
                     tableBody.appendChild(tr);
                 });
 
-                // 2. Render Database Records (Server SQLite & Cloud Firestore)
+                // B. Render IndexedDB Items
+                localIndexedRecords.forEach(item => {
+                    unsyncedCounter++;
+                    const id = `idb_${item.local_id}`;
+                    
+                    let uic = item.uic;
+                    if (!uic) {
+                        const mCode = (item.mother_code || '').toUpperCase();
+                        const fCode = (item.father_code || '').toUpperCase();
+                        const bOrder = formatBirthOrder(item.birth_order);
+                        const bDate = formatUICDate(item.birth_date);
+                        uic = `${mCode}${fCode}${bOrder}${bDate}`;
+                    }
+
+                    const syncBadge = '<span class="badge bg-warning text-dark">UNSYNCED</span>';
+                    const storageRemark = '<span class="badge bg-danger text-white badge-storage">🌐 IndexedDB Local Storage</span>';
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-bottom border-secondary';
+                    tr.innerHTML = `
+                        <td class="px-3"><input class="form-check-input record-checkbox" type="checkbox" value="${id}" disabled></td>
+                        <td class="px-3">${syncBadge}</td>
+                        <td class="px-3">${storageRemark}</td>
+                        <td class="px-3 font-monospace">${item.test_date || 'N/A'}</td>
+                        <td class="px-3 fw-bold text-amber-custom font-monospace">${uic}</td>
+                        <td class="px-3">
+                            <span class="badge bg-secondary">Pending Sync</span>
+                        </td>
+                        <td class="px-3 text-end">
+                            <button class="btn btn-sm btn-outline-warning">Sync Now</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+
+                // C. Render Server Database Records
                 serverRecords.forEach(record => {
                     const data = record.data || {};
                     const id = record.id;
@@ -242,7 +318,7 @@
 
                 unsyncedSpan.innerText = unsyncedCounter;
 
-                // Attach event listeners for Result Select Dropdowns
+                // Event Listener for Result Selects
                 document.querySelectorAll('.result-select').forEach(select => {
                     select.addEventListener('change', (e) => {
                         const recordId = e.target.getAttribute('data-id');
@@ -251,7 +327,24 @@
                     });
                 });
 
-                // Attach counter updates for checkboxes
+                // Single Sync Handler for LocalStorage items
+                document.querySelectorAll('.btn-single-sync-local').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const index = parseInt(e.target.getAttribute('data-index'), 10);
+                        const localRecords = getLocalStorageRecords();
+                        const item = localRecords[index];
+                        if (item) {
+                            btn.disabled = true;
+                            btn.innerText = 'Syncing...';
+                            await pushLocalRecordToBackend(item);
+                            localRecords.splice(index, 1);
+                            localStorage.setItem('offline_hts_records', JSON.stringify(localRecords));
+                            loadRecords();
+                        }
+                    });
+                });
+
+                // Checkbox Counters
                 const checkboxes = document.querySelectorAll('.record-checkbox');
                 function updateCounter() {
                     document.getElementById('selected-count').innerText = document.querySelectorAll('.record-checkbox:checked').length;
@@ -275,42 +368,27 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadRecords();
 
-            // Sync Button Action (Syncs SQLite and Browser IndexedDB)
+            // Sync All Unpushed Button Action
             document.getElementById('btn-sync-unpushed').addEventListener('click', async () => {
                 if (!navigator.onLine) {
                     alert("Cannot sync: Internet connection unavailable.");
                     return;
                 }
 
-                // 1. Sync IndexedDB Browser Storage
-                const localBrowserRecords = await getIndexedDBRecords();
-                if (localBrowserRecords.length > 0) {
-                    const db = await openIDB();
-                    for (const item of localBrowserRecords) {
-                        const localId = item.local_id;
-                        delete item.local_id;
-
-                        if (typeof window.saveToFirebaseRealtime === 'function') {
-                            await window.saveToFirebaseRealtime(item);
-                        }
-
-                        item.is_synced = 1;
-                        await fetch('/api/sqlite/save-offline', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(item)
-                        });
-
-                        const delTx = db.transaction('pending_records', 'readwrite');
-                        delTx.objectStore('pending_records').delete(localId);
+                // 1. Push LocalStorage items
+                const localRecords = getLocalStorageRecords();
+                if (localRecords.length > 0) {
+                    for (const item of localRecords) {
+                        await pushLocalRecordToBackend(item);
                     }
+                    localStorage.removeItem('offline_hts_records');
                 }
 
-                // 2. Sync SQLite Database Unpushed Records
+                // 2. Push SQLite items
                 try {
                     const res = await fetch('/api/sqlite/sync-pending', { method: 'POST' });
                     const result = await res.json();
-                    alert(`Sync Complete! All unsynced records pushed to Firebase.`);
+                    alert(`Sync Complete! All unsynced records pushed to database.`);
                     loadRecords();
                 } catch (err) {
                     alert("Sync process completed with partial updates.");
