@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffb703">
+    <title>ALTERS - HTS Intake Form</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/192x192/1f4cb.png">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
+    <!-- CUSTOM FORM CSS -->
+    <style>
+        body { background-color: #000; color: #fff; font-family: 'Inter', sans-serif; }
+        .form-step { display: none; animation: fadeIn 0.4s ease forwards; }
+        .form-step.active { display: block; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .amber-bg { background-color: #ffb703 !important; }
+        .text-amber { color: #ffb703 !important; }
+        .btn-gold { background-color: #ffb703; color: #000; font-weight: 700; border: none; }
+        .btn-gold:hover { background-color: #e09f00; color: #000; }
+        .btn-outline-amber { border: 1px solid #ffb703; color: #ffb703; }
+        .btn-outline-amber:hover { background-color: #ffb703; color: #000; }
+        .form-card { background-color: #111; border: 1px solid #333; }
+        .form-control, .form-select { background-color: #222; border: 1px solid #444; color: #fff; }
+        .form-control:focus, .form-select:focus { background-color: #222; border-color: #ffb703; color: #fff; box-shadow: none; }
+        .amber-divider { height: 3px; background-color: #ffb703; width: 60px; margin: 10px auto; }
+        .max-w-custom { max-width: 900px; }
+        #signature-pad { border: 2px dashed #ffb703; background-color: #1a1a1a; cursor: crosshair; touch-action: none; width: 100%; height: 180px; }
+        .summary-label { color: #ffb703; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
+        .summary-value { color: #fff; font-size: 0.95rem; font-weight: 500; }
+    </style>
+
+    <script>
+      // Register PWA Service Worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('PWA Service Worker registered!', reg.scope))
+            .catch(err => console.error('Service Worker registration failed:', err));
+        });
+      }
+    </script>
+</head>
+<body>
+
+<div class="container py-5 max-w-custom">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <span id="network-badge" class="badge bg-success">ONLINE</span>
+        <a href="/export-manager" class="btn btn-sm btn-outline-warning">📋 Export Manager</a>
+    </div>
+
+    <div class="brand-header text-center mb-4">
+        <h1>ALTERS INTAKE</h1>
+        <div class="amber-divider"></div>
+        <p class="text-white small" id="step-indicator">Step 1 of 6</p>
+    </div>
+
+    <form id="hts-data-form">
+        <input type="hidden" name="assisted_by" value="{{ assisted_by }}">
+        <input type="hidden" name="verbal_consent" id="hidden-verbal-consent" value="No">
+        <input type="hidden" name="contact_number" id="hidden-contact-number" value="">
+        <input type="hidden" name="email_address" id="hidden-email-address" value="">
+        <input type="hidden" name="client_signature" id="hidden-signature-data" value="">
+
+        <!-- STEP 1: DEMOGRAPHIC DATA -->
+        <div class="form-step active" data-step="1">
+            <div class="card form-card mb-4">
+                <div class="card-header amber-bg text-black fw-bold">1. DEMOGRAPHIC DATA</div>
+                <div class="card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label text-white">Test Date</label>
+                            <input type="date" class="form-control" name="test_date" id="input_test_date" required>
+                        </div>
+                    </div>
+
+                    <h6 class="mt-4 mb-3 text-amber">Full Name</h6>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label text-white">First Name</label>
+                            <input type="text" class="form-control" name="first_name" id="input_first_name" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-white">Middle Name</label>
+                            <input type="text" class="form-control" name="middle_name" id="input_middle_name">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-white">Last Name</label>
+                            <input type="text" class="form-control" name="last_name" id="input_last_name" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label text-white">Suffix</label>
+                            <input type="text" class="form-control" placeholder="JR, III" name="suffix" id="input_suffix">
+                        </div>
+                    </div>
+
+                    <h6 class="mt-4 mb-3 text-amber">Parent Identifiers & Birth Data</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label text-white">Mother's First Name (2 letters)</label>
+                            <input type="text" class="form-control" maxlength="2" name="mother_code" id="input_mother_code" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-white">Father's First Name (2 letters)</label>
+                            <input type="text" class="form-control" maxlength="2" name="father_code" id="input_father_code" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-white">Birth Order</label>
+                            <input type="number" class="form-control" name="birth_order" id="input_birth_order" min="1" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label text-white">Birth Date</label>
+                            <input type="date" class="form-control" name="birth_date" id="input_birth_date" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-white">Age (Years)</label>
+                            <input type="number" class="form-control" name="age_years" id="input_age_years" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-white">Age in Months (&lt; 1 yr)</label>
+                            <input type="number" class="form-control" name="age_months" id="input_age_months" max="11" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-end">
+                <button type="button" class="btn btn-gold px-5 btn-next">Next →</button>
+            </div>
+        </div>
+
+        <!-- STEP 2: ADDRESS INFORMATION -->
+        <div class="form-step" data-step="2">
+            <div class="card form-card mb-4">
+                <div class="card-header amber-bg text-black fw-bold">2. ADDRESS INFORMATION</div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-amber mb-0">A. Current Residence</h6>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input manual-address-toggle" type="checkbox" id="toggle_curr_manual" data-target="curr">
+                            <label class="form-check-label text-white-50 small" for="toggle_curr_manual">Manual Input</label>
+                        </div>
+                    </div>
+                    <div id="curr_dropdown_container" class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label text-white">Province</label>
+                            <select class="form-select psgc-province" id="select_province" required></select>
+                            <input type="hidden" name="curr_province" id="input_curr_province">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-white">City / Municipality</label>
+                            <select class="form-select psgc-city" id="select_city" required disabled></select>
+                            <input type="hidden" name="curr_city" id="input_curr_city">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-white">Barangay</label>
+                            <select class="form-select psgc-barangay" id="select_barangay" required disabled></select>
+                            <input type="hidden" name="curr_barangay" id="input_curr_barangay">
+                        </div>
+                    </div>
+                    <div id="curr_manual_container" class="row g-3 mb-4 d-none">
+                        <div class="col-md-4">
+                            <label class="form-label text-white">Province (Manual)</label>
+                            <input type="text" class="form-control" name="curr_province_text" id="input_curr_province_text" placeholder="Type Province">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-white">City / Municipality (Manual)</label>
+                            <input type="text" class="form-control" name="curr_city_text" id="input_curr_city_text" placeholder="Type City/Municipality">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-white">Barangay (Manual)</label>
+                            <input type="text" class="form-control" name="curr_barangay_text" id="input_curr_barangay_text" placeholder="Type Barangay">
+                        </div>
+                    </div>
+
+                    <hr class="border-secondary my-4">
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-amber mb-0">B. Permanent Address</h6>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input manual-address-toggle" type="checkbox" id="toggle_perm_manual" data-target="perm">
+                            <label class="form-check-label text-white-50 small" for="toggle_perm_manual">Manual Input</label>
+                        </div>
+                    </div>
+                    <div id="perm_dropdown_container" class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Province</label>
+                            <select class="form-select psgc-province" id="select_perm_province" required></select>
+                            <input type="hidden" name="perm_province" id="input_perm_province">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white">City / Municipality</label>
+                            <select class="form-select psgc-city" id="select_perm_city" required disabled></select>
+                            <input type="hidden" name="perm_city" id="input_perm_city">
+                        </div>
+                    </div>
+                    <div id="perm_manual_container" class="row g-3 mb-4 d-none">
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Province (Manual)</label>
+                            <input type="text" class="form-control" name="perm_province_text" id="input_perm_province_text" placeholder="Type Province">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white">City / Municipality (Manual)</label>
+                            <input type="text" class="form-control" name="perm_city_text" id="input_perm_city_text" placeholder="Type City/Municipality">
+                        </div>
+                    </div>
+
+                    <hr class="border-secondary my-4">
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-amber mb-0">C. Birth Address</h6>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input manual-address-toggle" type="checkbox" id="toggle_birth_manual" data-target="birth">
+                            <label class="form-check-label text-white-50 small" for="toggle_birth_manual">Manual Input</label>
+                        </div>
+                    </div>
+                    <div id="birth_dropdown_container" class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Province</label>
+                            <select class="form-select psgc-province" id="select_birth_province" required></select>
+                            <input type="hidden" name="birth_province" id="input_birth_province">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white">City / Municipality</label>
+                            <select class="form-select psgc-city" id="select_birth_city" required disabled></select>
+                            <input type="hidden" name="birth_city" id="input_birth_city">
+                        </div>
+                    </div>
+                    <div id="birth_manual_container" class="row g-3 d-none">
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Province (Manual)</label>
+                            <input type="text" class="form-control" name="birth_province_text" id="input_birth_province_text" placeholder="Type Province">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white">City / Municipality (Manual)</label>
+                            <input type="text" class="form-control" name="birth_city_text" id="input_birth_city_text" placeholder="Type City/Municipality">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-light px-4 btn-prev">← Back</button>
+                <button type="button" class="btn btn-gold px-5 btn-next">Next →</button>
+            </div>
+        </div>
+
+        <!-- STEP 3: STATUS & FAMILY -->
+        <div class="form-step" data-step="3">
+            <div class="card form-card mb-4">
+                <div class="card-header amber-bg text-black fw-bold">3. STATUS & FAMILY</div>
+                <div class="card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Sex</label>
+                            <select class="form-select" name="sex" id="select_sex" required>
+                                <option value="">SELECT</option>
+                                <option value="Male">MALE</option>
+                                <option value="Female">FEMALE</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Gender Identity</label>
+                            <select class="form-select" name="gender_identity" id="gender-identity-select" required>
+                                <option value="">SELECT</option>
+                                <option value="MSM">MSM</option>
+                                <option value="TGW">TGW</option>
+                                <option value="Others">OTHERS (SPECIFY)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3 d-none" id="gender-other-container">
+                        <div class="col-12">
+                            <label class="form-label text-white">Please Specify Gender Identity</label>
+                            <input type="text" class="form-control" name="gender_identity_other" id="gender-other-input">
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Nationality</label>
+                            <select class="form-select" name="nationality" id="select_nationality" required>
+                                <option value="PHILIPPINES">PHILIPPINES</option>
+                                <option value="OTHER">OTHER (SPECIFY)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 d-none" id="nationality-other-container">
+                            <label class="form-label text-white">Specify Nationality</label>
+                            <input type="text" class="form-control" name="nationality_other" id="input_nationality_other">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Civil Status</label>
+                            <select class="form-select" name="civil_status" required>
+                                <option value="">SELECT</option>
+                                <option value="SINGLE">SINGLE</option>
+                                <option value="MARRIED">MARRIED</option>
+                                <option value="SEPARATED">SEPARATED</option>
+                                <option value="WIDOWED">WIDOWED</option>
+                                <option value="DIVORCED">DIVORCED</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Number of Children</label>
+                            <input type="number" class="form-control" name="number_of_children" id="input_number_of_children" min="0" placeholder="0">
+                        </div>
+
+                        <div class="col-md-6 mt-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="living_with_partner" id="living_with_partner" value="Yes">
+                                <label class="form-check-label text-white">Living with a partner?</label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mt-4 d-none" id="pregnant-container">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="currently_pregnant" id="currently_pregnant" value="Yes">
+                                <label class="form-check-label text-white">Currently pregnant?</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-light px-4 btn-prev">← Back</button>
+                <button type="button" class="btn btn-gold px-5 btn-next">Next →</button>
+            </div>
+        </div>
+
+        <!-- STEP 4: EDUCATION & EMPLOYMENT -->
+        <div class="form-step" data-step="4">
+            <div class="card form-card mb-4">
+                <div class="card-header amber-bg text-black fw-bold">4. EDUCATION & EMPLOYMENT</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Highest Educational Attainment</label>
+                            <select class="form-select" name="education" required>
+                                <option value="">SELECT</option>
+                                <option value="NO GRADE COMPLETED">NO GRADE COMPLETED</option>
+                                <option value="PRE-SCHOOL">PRE-SCHOOL</option>
+                                <option value="ELEMENTARY">ELEMENTARY</option>
+                                <option value="HIGH SCHOOL">HIGH SCHOOL</option>
+                                <option value="VOCATIONAL">VOCATIONAL</option>
+                                <option value="COLLEGE">COLLEGE</option>
+                                <option value="POST-GRADUATE">POST-GRADUATE</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Currently in school?</label>
+                            <select class="form-select" name="in_school" required>
+                                <option value="No">NO</option>
+                                <option value="Yes">YES</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h6 class="mt-5 mb-3 text-amber">Occupation Information</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Are you currently working?</label>
+                            <select class="form-select" name="currently_working" id="working-select" required>
+                                <option value="">SELECT</option>
+                                <option value="No">NO</option>
+                                <option value="Yes">YES</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Worked overseas in past 5 years?</label>
+                            <select class="form-select" name="worked_overseas" id="overseas-select" required>
+                                <option value="">SELECT</option>
+                                <option value="No">NO</option>
+                                <option value="Yes">YES</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-1 d-none" id="current-job-container">
+                        <div class="col-12">
+                            <label class="form-label text-white">Current Occupation</label>
+                            <input type="text" class="form-control" name="current_occupation" id="current-job-input">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-1 d-none" id="prev-job-container">
+                        <div class="col-12">
+                            <label class="form-label text-white">Previous occupation (past 12 months)</label>
+                            <input type="text" class="form-control" name="previous_occupation" id="prev-job-input">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-1 d-none" id="overseas-fields-container">
+                        <div class="col-md-4">
+                            <label class="form-label text-white">Year of return</label>
+                            <input type="number" class="form-control" name="overseas_return_year" id="overseas-year-input">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-white">Where based?</label>
+                            <select class="form-select" name="overseas_base" id="overseas-base-select">
+                                <option value="">SELECT</option>
+                                <option value="SHIP">SHIP</option>
+                                <option value="LAND">LAND</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-white">Last worked country</label>
+                            <input type="text" class="form-control" name="overseas_country" id="overseas-country-input">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-light px-4 btn-prev">← Back</button>
+                <button type="button" class="btn btn-gold px-5 btn-next">Next →</button>
+            </div>
+        </div>
+
+        <!-- STEP 5: RISK ASSESSMENT (PART 1) -->
+        <div class="form-step" data-step="5">
+            <div class="card form-card mb-4">
+                <div class="card-header amber-bg text-black fw-bold">5. RISK ASSESSMENT (PART 1)</div>
+                <div class="card-body">
+                    <label class="form-label d-block text-amber">Did your birth mother have HIV when you were born?</label>
+                    <div class="btn-group mb-4 w-100" role="group">
+                        <input type="radio" class="btn-check" name="mother_hiv" id="mhiv1" value="DO NOT KNOW" checked>
+                        <label class="btn btn-outline-amber" for="mhiv1">DO NOT KNOW</label>
+                        <input type="radio" class="btn-check" name="mother_hiv" id="mhiv2" value="NO">
+                        <label class="btn btn-outline-amber" for="mhiv2">NO</label>
+                        <input type="radio" class="btn-check" name="mother_hiv" id="mhiv3" value="YES">
+                        <label class="btn btn-outline-amber" for="mhiv3">YES</label>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-dark table-borderless align-middle custom-table">
+                            <tbody>
+                                <tr>
+                                    <td class="text-white">Sex with a MALE</td>
+                                    <td class="text-center">
+                                        <div class="form-check form-switch d-inline-block">
+                                            <input class="form-check-input date-trigger" type="checkbox" name="sex_male_bool" value="Yes">
+                                        </div>
+                                    </td>
+                                    <td><input type="month" class="form-control form-control-sm d-none" name="sex_male_date"></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-white">Sex with a FEMALE</td>
+                                    <td class="text-center">
+                                        <div class="form-check form-switch d-inline-block">
+                                            <input class="form-check-input date-trigger" type="checkbox" name="sex_female_bool" value="Yes">
+                                        </div>
+                                    </td>
+                                    <td><input type="month" class="form-control form-control-sm d-none" name="sex_female_date"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-light px-4 btn-prev">← Back</button>
+                <button type="button" class="btn btn-gold px-5 btn-next">Next →</button>
+            </div>
+        </div>
+
+        <!-- STEP 6: OTHER RISK EXPOSURES & COUNSELING NOTES -->
+        <div class="form-step" data-step="6">
+            <div class="card form-card mb-4">
+                <div class="card-header amber-bg text-black fw-bold">6. OTHER RISK EXPOSURES</div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-borderless align-middle custom-table mb-4">
+                            <tbody>
+                                <tr>
+                                    <td class="text-white">Paid for sex (cash or kind)</td>
+                                    <td class="text-center">
+                                        <div class="form-check form-switch d-inline-block">
+                                            <input class="form-check-input date-trigger" type="checkbox" name="paid_sex_bool" value="Yes">
+                                        </div>
+                                    </td>
+                                    <td><input type="month" class="form-control form-control-sm d-none" name="paid_sex_date"></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-white">Received payment for sex</td>
+                                    <td class="text-center">
+                                        <div class="form-check form-switch d-inline-block">
+                                            <input class="form-check-input date-trigger" type="checkbox" name="received_payment_bool" value="Yes">
+                                        </div>
+                                    </td>
+                                    <td><input type="month" class="form-control form-control-sm d-none" name="received_payment_date"></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-white">Shared injection needles</td>
+                                    <td class="text-center">
+                                        <div class="form-check form-switch d-inline-block">
+                                            <input class="form-check-input date-trigger" type="checkbox" name="shared_needles_bool" value="Yes">
+                                        </div>
+                                    </td>
+                                    <td><input type="month" class="form-control form-control-sm d-none" name="shared_needles_date"></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-white">Received blood transfusion</td>
+                                    <td class="text-center">
+                                        <div class="form-check form-switch d-inline-block">
+                                            <input class="form-check-input date-trigger" type="checkbox" name="blood_transfusion_bool" value="Yes">
+                                        </div>
+                                    </td>
+                                    <td><input type="month" class="form-control form-control-sm d-none" name="blood_transfusion_date"></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-white">Occupational exposure</td>
+                                    <td class="text-center">
+                                        <div class="form-check form-switch d-inline-block">
+                                            <input class="form-check-input date-trigger" type="checkbox" name="occupational_exposure_bool" value="Yes">
+                                        </div>
+                                    </td>
+                                    <td><input type="month" class="form-control form-control-sm d-none" name="occupational_exposure_date"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="p-3 border border-secondary rounded mb-4" style="background-color: #0d0d0d;">
+                        <h6 class="text-amber mb-2">Previous HIV Testing History</h6>
+                        <label class="form-label text-white small mb-2">Have you ever been tested for HIV before?</label>
+                        <input type="hidden" id="prev_test_bool" name="prev_test_bool" value="No">
+                        <div class="btn-group w-100 mb-2" role="group">
+                            <button type="button" class="btn btn-outline-secondary text-white py-2 btn-sm" id="btn-prev-test-no">NO, NEVER TESTED</button>
+                            <button type="button" class="btn btn-outline-amber py-2 btn-sm" id="btn-prev-test-yes">YES, I HAVE BEEN TESTED</button>
+                        </div>
+
+                        <div class="row g-2 d-none mt-2 pt-2 border-top border-secondary" id="prev-test-details">
+                            <div class="col-md-3">
+                                <label class="text-white-50 small mb-1">Date of Last Test</label>
+                                <input type="date" class="form-control form-control-sm" name="prev_test_date" id="prev_test_date">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="text-white-50 small mb-1">Testing Facility</label>
+                                <input type="text" class="form-control form-control-sm" name="prev_test_facility" id="prev_test_facility" placeholder="Facility name">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="text-white-50 small mb-1">City / Municipality</label>
+                                <input type="text" class="form-control form-control-sm" name="prev_test_city" id="prev_test_city" placeholder="City location">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="text-white-50 small mb-1">Test Result</label>
+                                <select class="form-select form-select-sm" name="prev_test_result" id="prev_test_result">
+                                    <option value="">SELECT RESULT</option>
+                                    <option value="Reactive">Reactive</option>
+                                    <option value="Nonreactive">Nonreactive</option>
+                                    <option value="Was not able to get the result">Was not able to get the result</option>
+                                    <option value="Inconclusive">Inconclusive</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 border border-secondary rounded mb-3" style="background-color: #0d0d0d;">
+                        <h6 class="text-amber mb-2">Counseling Notes</h6>
+                        <textarea class="form-control mb-3" name="counseling_notes" id="counseling_notes" rows="3" placeholder="Enter counselor observations..."></textarea>
+                        
+                        <label class="form-label text-white small">Service Provider Name (Counselor)</label>
+                        <input type="text" class="form-control" name="service_provider_name" id="input_service_provider_name" placeholder="Enter full name of provider" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-light px-4 btn-prev">← Back</button>
+                <button type="button" class="btn btn-gold px-5 fw-bold shadow-lg" id="btn-open-review-modal">REVIEW & SUBMIT FORM →</button>
+                <button type="button" class="d-none" id="btn-proceed-to-linkage-step"></button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- INFORMED CONSENT MODAL -->
+<div class="modal fade" id="consentModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content bg-black text-white" style="border: 2px solid #ffb703;">
+            <div class="modal-header amber-bg text-black">
+                <h5 class="modal-title fw-bold">DOH HTS INFORMED CONSENT ASSESSMENT</h5>
+            </div>
+            <div class="modal-body p-4" style="background-color: #0c0c0c; font-size: 0.85rem; line-height: 1.6;">
+                <p class="fw-bold text-amber mb-2">ABOUT THE PROGRAM & TESTING CONTROL</p>
+                <p class="text-white-50 mb-3">The Department of Health (DOH) has an existing program for the prevention and control of HIV in the Philippines.</p>
+
+                <div class="card p-3 mb-3 border-secondary" style="background-color: #151515;">
+                    <h6 class="fw-bold text-white mb-3">CONTACT INFORMATION LOGISTICS</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-white small">Contact Number</label>
+                            <input type="tel" id="consent-contact" class="form-control form-control-sm" placeholder="e.g., 09123456789" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white small">Email Address</label>
+                            <input type="email" id="consent-email" class="form-control form-control-sm" placeholder="name@example.com">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card p-3 mb-3 border-secondary" style="background-color: #151515;">
+                    <h6 class="fw-bold text-amber mb-2">CLIENT DRAWN SIGNATURE</h6>
+                    <p class="text-white-50 small mb-2">Please draw your signature below in BLACK ink.</p>
+                    <canvas id="signature-pad" class="rounded"></canvas>
+                    <div class="mt-2 text-end">
+                        <button type="button" id="btn-clear-signature" class="btn btn-sm btn-outline-danger">Clear Signature</button>
+                    </div>
+                </div>
+
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" id="consent-check" style="transform: scale(1.2); margin-right: 8px;">
+                    <label class="form-check-label fw-bold text-white" for="consent-check">I agree to undergo HIV testing and confirm my voluntary consent.</label>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary bg-black d-flex justify-content-end">
+                <button type="button" id="btn-grant-consent" class="btn btn-gold px-4" disabled>PROCEED TO FORM</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FORM SUMMARY & REVIEW MODAL -->
+<div class="modal fade" id="summaryReviewModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content bg-dark text-white" style="border: 2px solid #ffb703;">
+            <div class="modal-header amber-bg text-black">
+                <h5 class="modal-title fw-bold">REVIEW INTAKE FORM SUMMARY</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 bg-black">
+                <p class="text-white-50 small mb-4">Please verify all client details below before committing the record.</p>
+                
+                <div class="p-3 border border-secondary rounded mb-3" style="background-color: #121212;">
+                    <h6 class="text-amber mb-3 border-bottom border-secondary pb-2">1. DEMOGRAPHIC SUMMARY</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6"><span class="summary-label">Full Name:</span> <div class="summary-value" id="summary-name">-</div></div>
+                        <div class="col-md-3"><span class="summary-label">Test Date:</span> <div class="summary-value" id="summary-test-date">-</div></div>
+                        <div class="col-md-3"><span class="summary-label">Birth Date:</span> <div class="summary-value" id="summary-bdate">-</div></div>
+                        <div class="col-md-4"><span class="summary-label">Calculated Age:</span> <div class="summary-value" id="summary-age">-</div></div>
+                        <div class="col-md-4"><span class="summary-label">Calculated UIC:</span> <div class="summary-value text-amber fw-bold" id="summary-uic">-</div></div>
+                    </div>
+                </div>
+
+                <div class="p-3 border border-secondary rounded mb-3" style="background-color: #121212;">
+                    <h6 class="text-amber mb-3 border-bottom border-secondary pb-2">2. ADDRESS SUMMARY</h6>
+                    <div class="row g-3">
+                        <div class="col-md-12"><span class="summary-label">Current Residence:</span> <div class="summary-value" id="summary-curr-addr">-</div></div>
+                        <div class="col-md-6"><span class="summary-label">Permanent Address:</span> <div class="summary-value" id="summary-perm-addr">-</div></div>
+                        <div class="col-md-6"><span class="summary-label">Birth Place Address:</span> <div class="summary-value" id="summary-birth-addr">-</div></div>
+                    </div>
+                </div>
+
+                <div class="p-3 border border-secondary rounded mb-3" style="background-color: #121212;">
+                    <h6 class="text-amber mb-3 border-bottom border-secondary pb-2">3. STATUS & FAMILY</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4"><span class="summary-label">Sex / Gender:</span> <div class="summary-value" id="summary-sex-gender">-</div></div>
+                        <div class="col-md-4"><span class="summary-label">Civil Status:</span> <div class="summary-value" id="summary-civil-status">-</div></div>
+                        <div class="col-md-4"><span class="summary-label">Nationality:</span> <div class="summary-value" id="summary-nationality">-</div></div>
+                        <div class="col-md-6"><span class="summary-label">Children / Partner:</span> <div class="summary-value" id="summary-partner-children">-</div></div>
+                    </div>
+                </div>
+
+                <div class="p-3 border border-secondary rounded mb-3" style="background-color: #121212;">
+                    <h6 class="text-amber mb-3 border-bottom border-secondary pb-2">4. EDUCATION & EMPLOYMENT</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6"><span class="summary-label">Education Attainment:</span> <div class="summary-value" id="summary-education">-</div></div>
+                        <div class="col-md-6"><span class="summary-label">Currently in School:</span> <div class="summary-value" id="summary-in-school">-</div></div>
+                        <div class="col-md-6"><span class="summary-label">Employment Status:</span> <div class="summary-value" id="summary-occupation">-</div></div>
+                        <div class="col-md-6"><span class="summary-label">Worked Overseas (Past 5 Yrs):</span> <div class="summary-value" id="summary-overseas">-</div></div>
+                    </div>
+                </div>
+
+                <div class="p-3 border border-secondary rounded mb-3" style="background-color: #121212;">
+                    <h6 class="text-amber mb-3 border-bottom border-secondary pb-2">5. RISK EXPOSURES & TESTING HISTORY</h6>
+                    <div class="row g-3">
+                        <div class="col-md-12"><span class="summary-label">Mother HIV Status at Birth:</span> <div class="summary-value" id="summary-mother-hiv">-</div></div>
+                        <div class="col-md-12"><span class="summary-label">Active Exposure Risks:</span> <div class="summary-value" id="summary-exposures">-</div></div>
+                        <div class="col-md-12"><span class="summary-label">Previous HIV Test History:</span> <div class="summary-value" id="summary-prev-testing">-</div></div>
+                    </div>
+                </div>
+
+                <div class="p-3 border border-secondary rounded mb-3" style="background-color: #121212;">
+                    <h6 class="text-amber mb-3 border-bottom border-secondary pb-2">6. COUNSELING & AUTHORIZATION</h6>
+                    <div class="row g-3 mb-2">
+                        <div class="col-md-12"><span class="summary-label">Counselor Remarks:</span> <div class="summary-value" id="summary-counseling-notes">-</div></div>
+                        <div class="col-md-12"><span class="summary-label">Service Provider Name:</span> <div class="summary-value text-amber" id="summary-provider-name">-</div></div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <span class="summary-label block mb-1">Signature Authorization Preview:</span>
+                        <img id="summary-signature-img" src="" alt="Client Signature Preview" class="rounded border border-secondary p-1" style="max-height: 100px; background-color: #fff;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer border-secondary d-flex justify-content-between bg-dark">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">← Edit Form</button>
+                <button type="button" id="btn-confirm-final-submit" class="btn btn-gold px-5 fw-bold">CONFIRM & SAVE RECORD</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="generatedLinkModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white" style="border: 2px solid #ffb703;">
+            <div class="modal-header amber-bg text-black">
+                <h5 class="modal-title fw-bold">INTAKE FORM RECORD SAVED</h5>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <p class="text-white-50 small mb-3">Your HTS Intake Record has been successfully saved!</p>
+            </div>
+            <div class="modal-footer border-secondary d-flex justify-content-end">
+                <button type="button" id="btn-modal-proceed-linkage" class="btn btn-gold px-4 fw-bold">PROCEED TO LINKAGE →</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="linkageModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white" style="border: 1px solid #c99339;">
+            <div class="modal-header amber-bg text-black">
+                <h5 class="modal-title fw-bold">LINKAGE & RESULT SUBMISSION</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="linkage-form">
+                    <div class="mb-4">
+                        <label class="form-label text-amber fw-bold">FINAL RESULT</label>
+                        <select class="form-select" id="linkage-result" name="result" required>
+                            <option value="">SELECT RESULT</option>
+                            <option value="NONREACTIVE">NONREACTIVE</option>
+                            <option value="REACTIVE">REACTIVE</option>
+                            <option value="INVALID">INVALID</option>
+                        </select>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" id="btn-final-linkage-submit" class="btn btn-gold fw-bold">SAVE & EXPORT PDF</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FIREBASE JS SDK INITIALIZATION FOR CLOUD FIRESTORE DIRECT WRITES -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  // Injected directly from Python backend environment variables
+  const firebaseConfig = {{ firebase_config | tojson }};
+
+  const firebaseApp = initializeApp(firebaseConfig);
+  const db = getFirestore(firebaseApp);
+
+  // Helper exposed to hts_submit.js to push records into Cloud Firestore
+  window.saveToFirebaseRealtime = async function(recordData) {
+      if (!navigator.onLine) return null;
+      try {
+          const docRef = await addDoc(collection(db, "hts_records"), {
+              ...recordData,
+              created_at: new Date().toISOString()
+          });
+          console.log("Successfully committed to Firestore with Document ID:", docRef.id);
+          return docRef.id;
+      } catch (err) {
+          console.error("Cloud Firestore DB Save Error:", err);
+          return null;
+      }
+  };
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/hts_submit.js') }}"></script>
+</body>
+</html>
