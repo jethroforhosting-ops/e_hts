@@ -273,6 +273,47 @@ def update_record_linkage(record_id):
 
     return jsonify({"error": "Database unavailable"}), 500
 
+@app.route('/api/records/uic/<uic_key>/update-linkage', methods=['POST'])
+def update_record_linkage_by_uic(uic_key):
+    """Updates linkage_result for a record using UIC as the reference."""
+    payload = request.get_json() or {}
+    linkage_result = payload.get('linkage_result', '')
+
+    if not linkage_result:
+        return jsonify({"error": "No result provided"}), 400
+
+    updated = False
+
+    # 1. Update in Local SQLite DB
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, payload_json FROM hts_submissions WHERE uic = ?', (uic_key,))
+        row = cursor.fetchone()
+        if row:
+            data = json.loads(row['payload_json'])
+            data['linkage_result'] = linkage_result
+            cursor.execute('UPDATE hts_submissions SET payload_json = ? WHERE id = ?', (json.dumps(data), row['id']))
+            conn.commit()
+            updated = True
+        conn.close()
+    except Exception as e:
+        print(f"SQLite Linkage Update Error: {e}")
+
+    # 2. Update in Cloud Firestore
+    if db:
+        try:
+            records = db.collection('hts_records').where(filter=FieldFilter('uic', '==', uic_key)).stream()
+            for doc in records:
+                db.collection('hts_records').document(doc.id).update({'linkage_result': linkage_result})
+                updated = True
+        except Exception as e:
+            print(f"Firestore Linkage Update Error: {e}")
+
+    if updated:
+        return jsonify({"status": "success", "uic": uic_key, "linkage_result": linkage_result}), 200
+    
+    return jsonify({"error": "Record with UIC not found"}), 44
 
 @app.route('/records/<record_id>/export', methods=['GET'])
 def export_single_record(record_id):

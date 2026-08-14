@@ -90,7 +90,7 @@
             return orderVal ? String(orderVal).trim().padStart(2, '0') : "01";
         }
 
-        // --- BROWSER LOCAL STORAGE READERS ---
+        // --- LOCAL STORAGE HELPERS ---
         function getLocalStorageRecords() {
             try {
                 const raw = localStorage.getItem('offline_hts_records') || '[]';
@@ -100,71 +100,65 @@
             }
         }
 
-        function openIDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open('HTS_PWA_DB', 1);
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
+        function saveLocalStorageRecords(records) {
+            localStorage.setItem('offline_hts_records', JSON.stringify(records));
         }
 
-        async function getIndexedDBRecords() {
-            try {
-                const db = await openIDB();
-                if (!db.objectStoreNames.contains('pending_records')) return [];
-                return new Promise((resolve, reject) => {
-                    const tx = db.transaction('pending_records', 'readonly');
-                    const store = tx.objectStore('pending_records');
-                    const req = store.getAll();
-                    req.onsuccess = () => resolve(req.result || []);
-                    req.onerror = () => reject([]);
-                });
-            } catch (e) {
-                return [];
-            }
-        }
+        // --- UPDATE LINKAGE RESULT BY UIC KEY ---
+        async function updateResultByUIC(uicKey, newResult, isLocalStorage, localIndex = null) {
+            if (!uicKey || !newResult) return;
 
-        async function updateRecordResult(recordId, newResult) {
-            if (!newResult) return;
-
-            // Handle LocalStorage record result update
-            if (String(recordId).startsWith('local_')) {
-                const localIndex = parseInt(recordId.replace('local_', ''), 10);
+            // Update in Local Storage if record exists locally
+            if (isLocalStorage && localIndex !== null) {
                 const localRecords = getLocalStorageRecords();
                 if (localRecords[localIndex]) {
                     localRecords[localIndex].linkage_result = newResult;
-                    localStorage.setItem('offline_hts_records', JSON.stringify(localRecords));
-                    console.log(`Updated localStorage record #${localIndex} result to ${newResult}`);
+                    saveLocalStorageRecords(localRecords);
+                    console.log(`[LocalStorage] Updated UIC ${uicKey} to result: ${newResult}`);
                 }
-                return;
             }
 
-            // Handle Server / Database record result update
+            // Update in Backend Database (SQLite & Firestore) via UIC API
             try {
-                const response = await fetch(`/api/records/${recordId}/update-linkage`, {
+                const response = await fetch(`/api/records/uic/${uicKey}/update-linkage`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ linkage_result: newResult })
                 });
-                const data = await response.json();
-                if (data.status === 'success') {
-                    console.log(`Linkage result updated to ${newResult} for record ${recordId}`);
-                } else {
-                    alert(`Failed to update result: ${data.error || 'Unknown error'}`);
+                const resData = await response.json();
+                if (resData.status === 'success') {
+                    console.log(`[Server] Updated UIC ${uicKey} to result: ${newResult}`);
                 }
             } catch (err) {
-                console.error('Update Result Error:', err);
-                alert('Error updating linkage result.');
+                console.error("UIC Linkage Update Error:", err);
             }
         }
 
-        async function pushLocalRecordToBackend(item) {
-            const response = await fetch('/api/sqlite/save-offline', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(item)
-            });
-            return await response.json();
+        // --- PUSH INDIVIDUAL LOCAL RECORD TO SERVER ---
+        async function syncSingleLocalRecord(index) {
+            const localRecords = getLocalStorageRecords();
+            const item = localRecords[index];
+
+            if (!item) return false;
+
+            try {
+                const response = await fetch('/api/sqlite/save-offline', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(item)
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    // Remove synced item from Local Storage
+                    localRecords.splice(index, 1);
+                    saveLocalStorageRecords(localRecords);
+                    return true;
+                }
+            } catch (err) {
+                console.error("Single Sync Error:", err);
+            }
+            return false;
         }
 
         async function loadRecords() {
@@ -172,17 +166,14 @@
             const unsyncedSpan = document.getElementById('unsynced-count');
 
             try {
-                // 1. Fetch Backend SQLite / Firebase records
+                // Fetch Backend Records
                 const res = await fetch('/api/my-hts-records');
                 const serverRecords = await res.json() || [];
 
-                // 2. Fetch Browser Local Storage (localStorage + IndexedDB)
+                // Fetch Browser LocalStorage
                 const localStorageRecords = getLocalStorageRecords();
-                const localIndexedRecords = await getIndexedDBRecords();
 
-                const totalLocalCount = localStorageRecords.length + localIndexedRecords.length;
-
-                if (serverRecords.length === 0 && totalLocalCount === 0) {
+                if (serverRecords.length === 0 && localStorageRecords.length === 0) {
                     tableBody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-white-50">No intake records available.</td></tr>';
                     unsyncedSpan.innerText = '0';
                     return;
@@ -191,51 +182,9 @@
                 tableBody.innerHTML = '';
                 let unsyncedCounter = 0;
 
-                // A. Render LocalStorage Items
+                // 1. RENDER LOCAL STORAGE RECORDS (UNSYNCED)
                 localStorageRecords.forEach((item, index) => {
                     unsyncedCounter++;
-                    const id = `local_${index}`;
-                    const currentResult = item.linkage_result || item.result || '';
-
-                    let uic = item.uic;
-                    if (!uic) {
-                        const mCode = (item.mother_code || '').toUpperCase();
-                        const fCode = (item.father_code || '').toUpperCase();
-                        const bOrder = formatBirthOrder(item.birth_order);
-                        const bDate = formatUICDate(item.birth_date);
-                        uic = `${mCode}${fCode}${bOrder}${bDate}`;
-                    }
-
-                    const syncBadge = '<span class="badge bg-warning text-dark">UNSYNCED</span>';
-                    const storageRemark = '<span class="badge bg-danger text-white badge-storage">🌐 Browser Local Storage</span>';
-
-                    const tr = document.createElement('tr');
-                    tr.className = 'border-bottom border-secondary';
-                    tr.innerHTML = `
-                        <td class="px-3"><input class="form-check-input record-checkbox" type="checkbox" value="${id}" disabled></td>
-                        <td class="px-3">${syncBadge}</td>
-                        <td class="px-3">${storageRemark}</td>
-                        <td class="px-3 font-monospace">${item.test_date || 'N/A'}</td>
-                        <td class="px-3 fw-bold text-amber-custom font-monospace">${uic}</td>
-                        <td class="px-3">
-                            <select class="form-select form-select-sm result-select" data-id="${id}">
-                                <option value="" ${!currentResult ? 'selected' : ''}>PENDING EVALUATION</option>
-                                <option value="NONREACTIVE" ${currentResult === 'NONREACTIVE' ? 'selected' : ''}>NONREACTIVE</option>
-                                <option value="REACTIVE" ${currentResult === 'REACTIVE' ? 'selected' : ''}>REACTIVE</option>
-                                <option value="INVALID" ${currentResult === 'INVALID' ? 'selected' : ''}>INVALID</option>
-                            </select>
-                        </td>
-                        <td class="px-3 text-end">
-                            <button class="btn btn-sm btn-outline-warning btn-single-sync-local" data-index="${index}">Sync Now</button>
-                        </td>
-                    `;
-                    tableBody.appendChild(tr);
-                });
-
-                // B. Render IndexedDB Items
-                localIndexedRecords.forEach(item => {
-                    unsyncedCounter++;
-                    const id = `idb_${item.local_id}`;
                     
                     let uic = item.uic;
                     if (!uic) {
@@ -244,30 +193,37 @@
                         const bOrder = formatBirthOrder(item.birth_order);
                         const bDate = formatUICDate(item.birth_date);
                         uic = `${mCode}${fCode}${bOrder}${bDate}`;
+                        item.uic = uic;
                     }
 
+                    const currentResult = item.linkage_result || item.result || '';
                     const syncBadge = '<span class="badge bg-warning text-dark">UNSYNCED</span>';
-                    const storageRemark = '<span class="badge bg-danger text-white badge-storage">🌐 IndexedDB Local Storage</span>';
+                    const storageRemark = '<span class="badge bg-danger text-white badge-storage">🌐 Browser Local Storage</span>';
 
                     const tr = document.createElement('tr');
                     tr.className = 'border-bottom border-secondary';
                     tr.innerHTML = `
-                        <td class="px-3"><input class="form-check-input record-checkbox" type="checkbox" value="${id}" disabled></td>
+                        <td class="px-3"><input class="form-check-input record-checkbox" type="checkbox" value="local_${index}" disabled></td>
                         <td class="px-3">${syncBadge}</td>
                         <td class="px-3">${storageRemark}</td>
                         <td class="px-3 font-monospace">${item.test_date || 'N/A'}</td>
                         <td class="px-3 fw-bold text-amber-custom font-monospace">${uic}</td>
                         <td class="px-3">
-                            <span class="badge bg-secondary">Pending Sync</span>
+                            <select class="form-select form-select-sm result-select" data-uic="${uic}" data-local="true" data-index="${index}">
+                                <option value="" ${!currentResult ? 'selected' : ''}>PENDING EVALUATION</option>
+                                <option value="NONREACTIVE" ${currentResult === 'NONREACTIVE' ? 'selected' : ''}>NONREACTIVE</option>
+                                <option value="REACTIVE" ${currentResult === 'REACTIVE' ? 'selected' : ''}>REACTIVE</option>
+                                <option value="INVALID" ${currentResult === 'INVALID' ? 'selected' : ''}>INVALID</option>
+                            </select>
                         </td>
                         <td class="px-3 text-end">
-                            <button class="btn btn-sm btn-outline-warning">Sync Now</button>
+                            <button class="btn btn-sm btn-warning fw-bold btn-sync-single" data-index="${index}">Sync Now</button>
                         </td>
                     `;
                     tableBody.appendChild(tr);
                 });
 
-                // C. Render Server Database Records
+                // 2. RENDER DATABASE RECORDS (SQLITE & FIRESTORE)
                 serverRecords.forEach(record => {
                     const data = record.data || {};
                     const id = record.id;
@@ -302,7 +258,7 @@
                         <td class="px-3 font-monospace">${data.test_date || 'N/A'}</td>
                         <td class="px-3 fw-bold text-amber-custom font-monospace">${uic}</td>
                         <td class="px-3">
-                            <select class="form-select form-select-sm result-select" data-id="${id}">
+                            <select class="form-select form-select-sm result-select" data-uic="${uic}" data-local="false">
                                 <option value="" ${!currentResult ? 'selected' : ''}>PENDING EVALUATION</option>
                                 <option value="NONREACTIVE" ${currentResult === 'NONREACTIVE' ? 'selected' : ''}>NONREACTIVE</option>
                                 <option value="REACTIVE" ${currentResult === 'REACTIVE' ? 'selected' : ''}>REACTIVE</option>
@@ -318,33 +274,36 @@
 
                 unsyncedSpan.innerText = unsyncedCounter;
 
-                // Event Listener for Result Selects
+                // Event Listeners for Result Dropdowns (Mapped by UIC)
                 document.querySelectorAll('.result-select').forEach(select => {
                     select.addEventListener('change', (e) => {
-                        const recordId = e.target.getAttribute('data-id');
+                        const uicKey = e.target.getAttribute('data-uic');
                         const newResult = e.target.value;
-                        updateRecordResult(recordId, newResult);
+                        const isLocal = e.target.getAttribute('data-local') === 'true';
+                        const localIndex = isLocal ? parseInt(e.target.getAttribute('data-index'), 10) : null;
+
+                        updateResultByUIC(uicKey, newResult, isLocal, localIndex);
                     });
                 });
 
-                // Single Sync Handler for LocalStorage items
-                document.querySelectorAll('.btn-single-sync-local').forEach(btn => {
+                // Individual Sync Button Event Listeners
+                document.querySelectorAll('.btn-sync-single').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
-                        const index = parseInt(e.target.getAttribute('data-index'), 10);
-                        const localRecords = getLocalStorageRecords();
-                        const item = localRecords[index];
-                        if (item) {
-                            btn.disabled = true;
-                            btn.innerText = 'Syncing...';
-                            await pushLocalRecordToBackend(item);
-                            localRecords.splice(index, 1);
-                            localStorage.setItem('offline_hts_records', JSON.stringify(localRecords));
-                            loadRecords();
+                        const idx = parseInt(e.target.getAttribute('data-index'), 10);
+                        btn.disabled = true;
+                        btn.innerText = 'Syncing...';
+
+                        const success = await syncSingleLocalRecord(idx);
+                        if (success) {
+                            alert("Record successfully pushed to database!");
+                        } else {
+                            alert("Sync failed. Check network connection.");
                         }
+                        loadRecords();
                     });
                 });
 
-                // Checkbox Counters
+                // Checkbox Selection Counters
                 const checkboxes = document.querySelectorAll('.record-checkbox');
                 function updateCounter() {
                     document.getElementById('selected-count').innerText = document.querySelectorAll('.record-checkbox:checked').length;
@@ -375,28 +334,27 @@
                     return;
                 }
 
-                // 1. Push LocalStorage items
+                // 1. Sync all LocalStorage records
                 const localRecords = getLocalStorageRecords();
                 if (localRecords.length > 0) {
-                    for (const item of localRecords) {
-                        await pushLocalRecordToBackend(item);
+                    for (let i = localRecords.length - 1; i >= 0; i--) {
+                        await syncSingleLocalRecord(i);
                     }
-                    localStorage.removeItem('offline_hts_records');
                 }
 
-                // 2. Push SQLite items
+                // 2. Sync SQLite pending records
                 try {
                     const res = await fetch('/api/sqlite/sync-pending', { method: 'POST' });
                     const result = await res.json();
-                    alert(`Sync Complete! All unsynced records pushed to database.`);
+                    alert(`Sync Complete! ${result.synced_count || 0} unsynced records pushed to Firebase.`);
                     loadRecords();
                 } catch (err) {
-                    alert("Sync process completed with partial updates.");
+                    alert("Sync process completed.");
                     loadRecords();
                 }
             });
 
-            // Batch Print Trigger
+            // Batch Export Button Action
             document.getElementById('btn-trigger-batch').addEventListener('click', () => {
                 const selectedIds = Array.from(document.querySelectorAll('.record-checkbox:checked')).map(cb => cb.value);
                 if (selectedIds.length === 0) {
