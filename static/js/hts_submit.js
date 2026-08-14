@@ -5,13 +5,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Helper function to reformat YYYY-MM-DD into MMDDYYYY for UIC key
     function formatUICBirthDate(dateStr) {
-        if (!dateStr) return "00000000";
-        const parts = dateStr.split('-'); 
-        if (parts.length === 3) {
-            return `${parts[1]}${parts[2]}${parts[0]}`; // MMDDYYYY
-        }
-        return "00000000";
+    if (!dateStr) return "00000000";
+    
+    // Parse using Javascript Date object or standard YYYY-MM-DD string
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) {
+        // Fallback for manual string parsing if Date object fails
+        const clean = dateStr.replace(/\D/g, '');
+        return clean.length === 8 ? clean : "00000000";
     }
+
+    const month = String(d.getMonth() + 1).padStart(2, '0'); // MM
+    const day = String(d.getDate()).padStart(2, '0');       // DD
+    const year = String(d.getFullYear());                  // YYYY
+
+    return `${month}${day}${year}`; // Guarantees MMDDYYYY (e.g., 08161998)
+}
 
     // ==========================================
     // 1. PSGC ADDRESS POPULATION

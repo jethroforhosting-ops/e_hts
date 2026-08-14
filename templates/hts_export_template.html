@@ -168,12 +168,19 @@
                         <div class="text-right">
                             <span class="field-label block">Unique Identifier Code (UIC Key):</span>
                             <span class="field-val tracking-widest text-emerald-900 font-black text-xs">
-                                {% if data.uic %}
-                                    {{ data.uic }}
-                                {% else %}
-                                    {{ data.mother_code | default('', true) | upper }}{{ data.father_code | default('', true) | upper }}{{ (data.birth_order | string).zfill(2) if data.birth_order else '01' }}{{ data.birth_date[5:7] if data.birth_date else '00' }}{{ data.birth_date[8:10] if data.birth_date else '00' }}{{ data.birth_date[0:4] if data.birth_date else '0000' }}
-                                {% endif %}
-                            </span>
+                            <!-- Inside hts_export_template.html -->
+<span class="field-val tracking-widest text-emerald-900 font-black text-xs">
+    {% if data.uic %}
+        {{ data.uic }}
+    {% else %}
+        {% set b = data.birth_date.split('-') if data.birth_date and '-' in data.birth_date else [] %}
+        {% if b|length == 3 %}
+            {{ data.mother_code | default('', true) | upper }}{{ data.father_code | default('', true) | upper }}{{ (data.birth_order | string).zfill(2) if data.birth_order else '01' }}{{ b[1] }}{{ b[2] }}{{ b[0] }}
+        {% else %}
+            {{ data.mother_code | default('', true) | upper }}{{ data.father_code | default('', true) | upper }}{{ (data.birth_order | string).zfill(2) if data.birth_order else '01' }}00000000
+        {% endif %}
+    {% endif %}
+</span>
                         </div>
                     </div>
                 </div>
