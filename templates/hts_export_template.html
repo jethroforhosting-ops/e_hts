@@ -9,12 +9,12 @@
         @media print {
             @page {
                 size: A4 portrait;
-                margin: 6mm;
+                margin: 4mm;
             }
             body { 
                 background-color: #ffffff !important; 
                 color: #000000 !important; 
-                font-size: 8.5px !important; 
+                font-size: 8px !important; 
                 padding: 0 !important;
             }
             .no-print { display: none !important; }
@@ -26,197 +26,274 @@
                 border: 1.5px solid #000000 !important; 
                 border-radius: 0px !important; 
                 box-shadow: none !important; 
-                padding: 8px !important;
+                padding: 4px !important;
             }
         }
-        input[type="checkbox"] { transform: scale(0.9); margin-right: 2px; pointer-events: none; }
+        input[type="checkbox"] { transform: scale(0.85); margin-right: 2px; pointer-events: none; }
         .doh-border { border: 1px solid #000000; }
         .doh-border-b { border-bottom: 1px solid #000000; }
         .doh-border-r { border-right: 1px solid #000000; }
-        .doh-header { background-color: #e5e7eb; color: #000000; font-weight: 800; text-transform: uppercase; font-size: 0.6rem; letter-spacing: 0.05em; padding: 2px 4px; border-bottom: 1px solid #000000; }
-        .field-label { font-weight: 700; color: #111827; font-size: 0.58rem; text-transform: uppercase; }
-        .field-val { font-family: monospace; font-weight: 700; color: #000000; font-size: 0.68rem; }
+        .doh-border-l { border-left: 1px solid #000000; }
+        .doh-header { background-color: #e5e7eb; color: #000000; font-weight: 800; text-transform: uppercase; font-size: 0.58rem; letter-spacing: 0.05em; padding: 1.5px 4px; border-bottom: 1px solid #000000; }
+        .field-label { font-weight: 700; color: #111827; font-size: 0.55rem; text-transform: uppercase; }
+        .field-val { font-family: monospace; font-weight: 700; color: #000000; font-size: 0.65rem; }
+        .box-char { 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            width: 14px; 
+            height: 16px; 
+            border: 1px solid #000000; 
+            font-family: monospace; 
+            font-weight: 800; 
+            font-size: 9px; 
+            background-color: #ffffff;
+            margin-right: 1px;
+        }
+        .item-num {
+            font-weight: 900;
+            font-size: 0.6rem;
+            color: #000000;
+            min-width: 16px;
+            display: inline-block;
+            text-align: center;
+        }
     </style>
 </head>
 <body class="bg-gray-100 font-sans text-xs text-gray-900 antialiased p-2 md:p-4">
 
     <!-- FLOATING PRINT CONTROL BAR -->
-    <div class="max-w-4xl mx-auto mb-4 flex justify-between items-center bg-white p-3 rounded-md shadow-sm no-print doh-border">
+    <div class="max-w-4xl mx-auto mb-3 flex justify-between items-center bg-white p-2.5 rounded-md shadow-sm no-print doh-border">
         <div>
-            <h2 class="text-sm font-bold text-gray-900">e-HTS OFFICIAL DOH FORM EXPORT (HTS FORM 2021)</h2>
-            <p class="text-[11px] text-gray-500">Master Record Export • Department of Health (RA 11166 & 11332)</p>
+            <h2 class="text-xs font-bold text-gray-900">PERSONAL INFORMATION SHEET (HTS FORM 2021)</h2>
+            <p class="text-[10px] text-gray-500">Department of Health • Republic Act 11166 & 11332</p>
         </div>
-        <button onclick="window.print()" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-md shadow-sm cursor-pointer transition-all text-xs">
+        <button onclick="window.print()" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded shadow-sm cursor-pointer text-xs">
             🖨️ Print / Save as PDF
         </button>
     </div>
 
     {% for data in records_bundle %}
-    <div class="max-w-4xl mx-auto bg-white rounded-none doh-card p-3 {% if not loop.first %}page-break-after mt-6{% endif %}">
+    <div class="max-w-4xl mx-auto bg-white rounded-none doh-card p-2 {% if not loop.first %}page-break-after mt-4{% endif %}">
         
         <!-- HEADER SECTION -->
-        <div class="text-center doh-border-b pb-1 mb-1.5">
-            <div class="text-[7.5px] font-bold tracking-widest text-gray-600 uppercase">DEPARTMENT OF HEALTH • EPIDEMIOLOGY BUREAU</div>
-            <h1 class="text-xs font-black tracking-wider text-black uppercase mt-0.5">PERSONAL INFORMATION SHEET (HTS FORM 2021)</h1>
-            <p class="text-[8px] font-bold text-emerald-900">LAKAN NETWORK • HIV TESTING SERVICES</p>
+        <div class="text-center doh-border-b pb-1 mb-1">
+            <div class="text-[7px] font-bold tracking-widest text-gray-600 uppercase">DEPARTMENT OF HEALTH • EPIDEMIOLOGY BUREAU</div>
+            <h1 class="text-[11px] font-black tracking-wider text-black uppercase mt-0.5">PERSONAL INFORMATION SHEET (HTS FORM 2021)</h1>
+            <p class="text-[7.5px] font-bold text-emerald-900">LAKAN NETWORK • HIV TESTING SERVICES</p>
         </div>
 
         <!-- INFORMED CONSENT & LOGISTICS -->
-        <div class="doh-border mb-1.5 bg-gray-50 p-1 text-[9px]">
+        <div class="doh-border mb-1 bg-gray-50 p-1 text-[8.5px]">
             <div class="grid grid-cols-3 gap-1">
                 <div>
                     <span class="field-label block">Informed Consent:</span>
-                    <span class="field-val"><input type="checkbox" {% if data.verbal_consent == 'Yes' or data.verbal_consent == true or data.verbal_consent == '1' %}checked{% endif %}> Verbal / Voluntary Consent Granted</span>
+                    <span class="field-val"><input type="checkbox" {% if data.verbal_consent == 'Yes' or data.verbal_consent == true or data.verbal_consent == '1' %}checked{% endif %}> Voluntary Consent Granted</span>
                 </div>
                 <div>
-                    <span class="field-label block">Client Contact Number:</span>
+                    <span class="field-label block">Contact Number:</span>
                     <span class="field-val">{{ data.contact_number or 'N/A' }}</span>
                 </div>
                 <div>
-                    <span class="field-label block">Client Email Address:</span>
+                    <span class="field-label block">Email Address:</span>
                     <span class="field-val">{{ data.email_address or 'N/A' }}</span>
                 </div>
             </div>
         </div>
 
         <!-- HTS SECTION 1: DEMOGRAPHIC DATA -->
-        <div class="doh-border mb-1.5">
-            <div class="doh-header">1. DEMOGRAPHIC DATA</div>
-            <div class="p-1.5 grid grid-cols-6 gap-1 text-[9.5px]">
-                <div class="col-span-2">
-                    <span class="field-label block">1. Test Date:</span>
-                    <span class="field-val text-emerald-900">{{ data.test_date or 'N/A' }}</span>
-                </div>
-                <div class="col-span-2">
-                    <span class="field-label block">2. PhilHealth No:</span>
-                    <span class="field-val">{{ data.philhealth_no or 'Not enrolled' }}</span>
-                </div>
-                <div class="col-span-2">
-                    <span class="field-label block">3. PhilSys No:</span>
-                    <span class="field-val">{{ data.philsys_no or 'No PhilSys' }}</span>
-                </div>
-
-                <div class="col-span-6 bg-gray-50 p-1 doh-border my-0.5">
-                    <span class="field-label block mb-0.5">4. Full Legal Name:</span>
-                    <div class="grid grid-cols-4 gap-1 text-[9px]">
-                        <div><span class="text-[7.5px] text-gray-500 block">First Name</span><span class="field-val">{{ data.first_name }}</span></div>
-                        <div><span class="text-[7.5px] text-gray-500 block">Middle Name</span><span class="field-val">{{ data.middle_name or '—' }}</span></div>
-                        <div><span class="text-[7.5px] text-gray-500 block">Last Name</span><span class="field-val">{{ data.last_name }}</span></div>
-                        <div><span class="text-[7.5px] text-gray-500 block">Suffix</span><span class="field-val">{{ data.suffix or '—' }}</span></div>
+        <div class="doh-border mb-1">
+            <div class="doh-header">DEMOGRAPHIC DATA</div>
+            <div class="p-1 space-y-1 text-[8.5px]">
+                
+                <!-- ITEMS 1, 2, 3 -->
+                <div class="grid grid-cols-6 gap-1 items-center">
+                    <div class="col-span-2 flex items-center">
+                        <span class="item-num">1</span>
+                        <div>
+                            <span class="field-label block">Test Date:</span>
+                            <span class="field-val text-emerald-900">{{ data.test_date or 'N/A' }}</span>
+                        </div>
+                    </div>
+                    <div class="col-span-2 flex items-center">
+                        <span class="item-num">2</span>
+                        <div>
+                            <span class="field-label block">PhilHealth Number:</span>
+                            <span class="field-val">{{ data.philhealth_no or 'Not enrolled' }}</span>
+                        </div>
+                    </div>
+                    <div class="col-span-2 flex items-center">
+                        <span class="item-num">3</span>
+                        <div>
+                            <span class="field-label block">PhilSys Number:</span>
+                            <span class="field-val">{{ data.philsys_no or 'No PhilSys' }}</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="col-span-3">
-                    <span class="field-label block">5. Parent Identifiers & Birth Order:</span>
-                    <span class="field-val">Mother: {{ data.mother_code | upper or '--' }} | Father: {{ data.father_code | upper or '--' }} | Order: {{ (data.birth_order | string).zfill(2) if data.birth_order else '01' }}</span>
-                </div>
-                <div class="col-span-3">
-                    <span class="field-label block">Unique Identifier Code (UIC):</span>
-                    <span class="field-val tracking-widest text-emerald-900 font-black">
-                        {% if data.uic %}
-                            {{ data.uic }}
-                        {% else %}
-                            {{ data.mother_code | default('', true) | upper }}{{ data.father_code | default('', true) | upper }}{{ (data.birth_order | string).zfill(2) if data.birth_order else '01' }}{{ data.birth_date.replace('-', '') if data.birth_date else '00000000' }}
-                        {% endif %}
-                    </span>
-                </div>
-
-                <div class="col-span-2">
-                    <span class="field-label block">6. Birth Date & Age:</span>
-                    <span class="field-val">{{ data.birth_date or 'N/A' }} ({{ data.age_years or '0' }} Yrs {% if data.age_months %}/ {{ data.age_months }} Mos{% endif %})</span>
-                </div>
-                <div class="col-span-2">
-                    <span class="field-label block">7. Sex assigned at birth:</span>
-                    <span class="field-val">{{ data.sex or 'N/A' }}</span>
-                </div>
-                <div class="col-span-2">
-                    <span class="field-label block">Gender Identity:</span>
-                    <span class="field-val">{{ data.gender_identity_other if data.gender_identity == 'Others' else (data.gender_identity or 'Not Disclosed') }}</span>
+                <!-- ITEM 4: FULL NAME -->
+                <div class="flex items-start bg-gray-50 p-0.5 doh-border">
+                    <span class="item-num mt-1">4</span>
+                    <div class="w-full">
+                        <span class="field-label block mb-0.5">Name (Full Legal Name):</span>
+                        <div class="grid grid-cols-4 gap-1 text-[8px]">
+                            <div><span class="text-[6.5px] text-gray-500 block">First Name</span><span class="field-val">{{ data.first_name }}</span></div>
+                            <div><span class="text-[6.5px] text-gray-500 block">Middle Name</span><span class="field-val">{{ data.middle_name or '—' }}</span></div>
+                            <div><span class="text-[6.5px] text-gray-500 block">Last Name</span><span class="field-val">{{ data.last_name }}</span></div>
+                            <div><span class="text-[6.5px] text-gray-500 block">Suffix</span><span class="field-val">{{ data.suffix or '—' }}</span></div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="col-span-6 bg-gray-50 p-1 doh-border my-0.5">
-                    <span class="field-label block mb-0.5">8. Current Residence:</span>
-                    <span class="field-val">
-                        {% if data.curr_province_text %}
-                            {{ data.curr_barangay_text or '' }}, {{ data.curr_city_text or '' }}, {{ data.curr_province_text or '' }}
-                        {% else %}
-                            {{ data.curr_barangay or '' }}, {{ data.curr_city or '' }}, {{ data.curr_province or '' }}
-                        {% endif %}
-                    </span>
+                <!-- ITEM 5: VISUAL PARENT IDENTIFIER BOXES & UIC -->
+                <div class="flex items-center bg-gray-50 p-1 doh-border">
+                    <span class="item-num">5</span>
+                    <div class="grid grid-cols-2 w-full gap-2 items-center">
+                        <div>
+                            <span class="field-label block mb-1">Parent Identifiers & Birth Order:</span>
+                            <div class="flex items-center space-x-1">
+                                <span class="text-[7px] font-bold text-gray-600">Mother:</span>
+                                <div class="box-char">{{ (data.mother_code[0] if data.mother_code else '') | upper }}</div>
+                                <div class="box-char">{{ (data.mother_code[1] if data.mother_code and data.mother_code|length > 1 else '') | upper }}</div>
+                                
+                                <span class="text-[7px] font-bold text-gray-600 ml-1">Father:</span>
+                                <div class="box-char">{{ (data.father_code[0] if data.father_code else '') | upper }}</div>
+                                <div class="box-char">{{ (data.father_code[1] if data.father_code and data.father_code|length > 1 else '') | upper }}</div>
+
+                                <span class="text-[7px] font-bold text-gray-600 ml-1">Order:</span>
+                                <div class="box-char">{{ ((data.birth_order | string).zfill(2))[0] if data.birth_order else '0' }}</div>
+                                <div class="box-char">{{ ((data.birth_order | string).zfill(2))[1] if data.birth_order else '1' }}</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="field-label block">Unique Identifier Code (UIC Key):</span>
+                            <span class="field-val tracking-widest text-emerald-900 font-black text-xs">
+                                {% if data.uic %}
+                                    {{ data.uic }}
+                                {% else %}
+                                    {{ data.mother_code | default('', true) | upper }}{{ data.father_code | default('', true) | upper }}{{ (data.birth_order | string).zfill(2) if data.birth_order else '01' }}{{ data.birth_date[5:7] if data.birth_date else '00' }}{{ data.birth_date[8:10] if data.birth_date else '00' }}{{ data.birth_date[0:4] if data.birth_date else '0000' }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="col-span-3">
-                    <span class="field-label block">Permanent Residence:</span>
-                    <span class="field-val">
-                        {% if data.perm_province_text %}
-                            {{ data.perm_city_text or '' }}, {{ data.perm_province_text or '' }}
-                        {% else %}
-                            {{ data.perm_city or 'N/A' }}, {{ data.perm_province or 'N/A' }}
-                        {% endif %}
-                    </span>
+                <!-- ITEMS 6, 7 -->
+                <div class="grid grid-cols-6 gap-1 items-center">
+                    <div class="col-span-2 flex items-center">
+                        <span class="item-num">6</span>
+                        <div>
+                            <span class="field-label block">Birth Date & Age:</span>
+                            <span class="field-val">{{ data.birth_date or 'N/A' }} ({{ data.age_years or '0' }} Yrs {% if data.age_months %}/ {{ data.age_months }} Mos{% endif %})</span>
+                        </div>
+                    </div>
+                    <div class="col-span-2 flex items-center">
+                        <span class="item-num">7</span>
+                        <div>
+                            <span class="field-label block">Sex assigned at birth:</span>
+                            <span class="field-val">{{ data.sex or 'N/A' }}</span>
+                        </div>
+                    </div>
+                    <div class="col-span-2">
+                        <span class="field-label block">Gender Identity:</span>
+                        <span class="field-val">{{ data.gender_identity_other if data.gender_identity == 'Others' else (data.gender_identity or 'Not Disclosed') }}</span>
+                    </div>
                 </div>
 
-                <div class="col-span-3">
-                    <span class="field-label block">Place of Birth:</span>
-                    <span class="field-val">
-                        {% if data.birth_province_text %}
-                            {{ data.birth_city_text or '' }}, {{ data.birth_province_text or '' }}
-                        {% else %}
-                            {{ data.birth_city or 'N/A' }}, {{ data.birth_province or 'N/A' }}
-                        {% endif %}
-                    </span>
+                <!-- ITEM 8: RESIDENCE -->
+                <div class="flex items-start bg-gray-50 p-0.5 doh-border">
+                    <span class="item-num mt-1">8</span>
+                    <div class="w-full">
+                        <span class="field-label block mb-0.5">Places of Residence & Birth:</span>
+                        <div class="grid grid-cols-3 gap-1">
+                            <div><span class="text-[6.5px] text-gray-500 block">Current Residence</span><span class="field-val">{{ data.curr_barangay_text or data.curr_barangay or '' }}, {{ data.curr_city_text or data.curr_city or '' }}, {{ data.curr_province_text or data.curr_province or '' }}</span></div>
+                            <div><span class="text-[6.5px] text-gray-500 block">Permanent Residence</span><span class="field-val">{{ data.perm_city_text or data.perm_city or 'N/A' }}, {{ data.perm_province_text or data.perm_province or 'N/A' }}</span></div>
+                            <div><span class="text-[6.5px] text-gray-500 block">Place of Birth</span><span class="field-val">{{ data.birth_city_text or data.birth_city or 'N/A' }}, {{ data.birth_province_text or data.birth_province or 'N/A' }}</span></div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="col-span-2">
-                    <span class="field-label block">9. Nationality:</span>
-                    <span class="field-val">{{ data.nationality_other if data.nationality == 'OTHER' else (data.nationality or 'FILIPINO') }}</span>
+                <!-- ITEMS 9, 10, 11, 12 -->
+                <div class="grid grid-cols-6 gap-1 items-center">
+                    <div class="col-span-1 flex items-center">
+                        <span class="item-num">9</span>
+                        <div>
+                            <span class="field-label block">Nationality:</span>
+                            <span class="field-val">{{ data.nationality_other if data.nationality == 'OTHER' else (data.nationality or 'FILIPINO') }}</span>
+                        </div>
+                    </div>
+                    <div class="col-span-1 flex items-center">
+                        <span class="item-num">10</span>
+                        <div>
+                            <span class="field-label block">Civil Status:</span>
+                            <span class="field-val">{{ data.civil_status or 'SINGLE' }}</span>
+                        </div>
+                    </div>
+                    <div class="col-span-2 flex items-center">
+                        <span class="item-num">11</span>
+                        <div>
+                            <span class="field-label block">Living w/ partner / Children:</span>
+                            <span class="field-val">{{ data.living_with_partner or 'No' }} {% if data.living_with_partner == 'Yes' %}({{ data.number_of_children or '0' }} Children){% endif %}</span>
+                        </div>
+                    </div>
+                    <div class="col-span-2 flex items-center">
+                        <span class="item-num">12</span>
+                        <div>
+                            <span class="field-label block">Currently pregnant? (Female):</span>
+                            <span class="field-val">{{ data.currently_pregnant or 'N/A' }}</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-span-2">
-                    <span class="field-label block">10. Civil Status:</span>
-                    <span class="field-val">{{ data.civil_status or 'SINGLE' }}</span>
-                </div>
-                <div class="col-span-2">
-                    <span class="field-label block">11. Living with partner / Children:</span>
-                    <span class="field-val">{{ data.living_with_partner or 'No' }} {% if data.living_with_partner == 'Yes' %}({{ data.number_of_children or '0' }} Children){% endif %}</span>
-                </div>
-                <div class="col-span-6">
-                    <span class="field-label block">12. Currently pregnant? (Female clients):</span>
-                    <span class="field-val">{{ data.currently_pregnant or 'N/A' }}</span>
-                </div>
+
             </div>
         </div>
 
-        <!-- HTS SECTION 2: EDUCATION & OCCUPATION (UPDATED WITH OVERSEAS RETURN DATE) -->
-        <div class="doh-border mb-1.5">
-            <div class="doh-header">2. EDUCATION & OCCUPATION</div>
-            <div class="p-1.5 grid grid-cols-4 gap-1 text-[9.5px]">
-                <div class="col-span-2">
-                    <span class="field-label block">13. Highest Educational Attainment:</span>
-                    <span class="field-val">{{ data.education or 'N/A' }}</span>
-                </div>
-                <div class="col-span-2">
-                    <span class="field-label block">14. Currently in school?</span>
-                    <span class="field-val">{{ data.in_school or 'No' }}</span>
-                </div>
-
-                <div class="col-span-2">
-                    <span class="field-label block">15. Employment Status:</span>
-                    <span class="field-val">
-                        {% if data.currently_working == 'Yes' %}
-                            Working ({{ data.current_occupation or 'Main Income' }})
-                        {% else %}
-                            Unemployed {% if data.previous_occupation %}(Prev: {{ data.previous_occupation }}){% endif %}
-                        {% endif %}
-                    </span>
-                </div>
-                <div class="col-span-2">
-                    <span class="field-label block">16. Resided/Worked Overseas (Past 5 Yrs):</span>
-                    <span class="field-val">{{ data.worked_overseas or 'No' }}</span>
+        <!-- HTS SECTION 2: EDUCATION & OCCUPATION -->
+        <div class="doh-border mb-1">
+            <div class="doh-header">EDUCATION & OCCUPATION</div>
+            <div class="p-1 space-y-1 text-[8.5px]">
+                <div class="grid grid-cols-4 gap-1 items-center">
+                    <div class="col-span-2 flex items-center">
+                        <span class="item-num">13</span>
+                        <div>
+                            <span class="field-label block">Highest Educational Attainment:</span>
+                            <span class="field-val">{{ data.education or 'N/A' }}</span>
+                        </div>
+                    </div>
+                    <div class="col-span-2 flex items-center">
+                        <span class="item-num">14</span>
+                        <div>
+                            <span class="field-label block">Currently in school?</span>
+                            <span class="field-val">{{ data.in_school or 'No' }}</span>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- OVERSEAS DETAILS INCLUDING RETURN DATE/YEAR -->
+                <div class="grid grid-cols-4 gap-1 items-center">
+                    <div class="col-span-2 flex items-center">
+                        <span class="item-num">15</span>
+                        <div>
+                            <span class="field-label block">Employment Status:</span>
+                            <span class="field-val">
+                                {% if data.currently_working == 'Yes' %}
+                                    Working ({{ data.current_occupation or 'Main Income' }})
+                                {% else %}
+                                    Unemployed {% if data.previous_occupation %}(Prev: {{ data.previous_occupation }}){% endif %}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-span-2 flex items-center">
+                        <span class="item-num">16</span>
+                        <div>
+                            <span class="field-label block">Worked Overseas (Past 5 Yrs):</span>
+                            <span class="field-val">{{ data.worked_overseas or 'No' }}</span>
+                        </div>
+                    </div>
+                </div>
+
                 {% if data.worked_overseas == 'Yes' %}
-                <div class="col-span-4 bg-gray-50 p-1 doh-border my-0.5 grid grid-cols-3 gap-1">
+                <div class="bg-gray-50 p-0.5 doh-border grid grid-cols-3 gap-1">
                     <div>
                         <span class="field-label block">Year / Date of Return:</span>
                         <span class="field-val text-emerald-900">{{ data.overseas_return_year or data.overseas_return_date or 'N/A' }}</span>
@@ -234,108 +311,114 @@
             </div>
         </div>
 
-        <!-- HTS SECTION 3: RISK ASSESSMENT / HISTORY OF EXPOSURE -->
-        <div class="doh-border mb-1.5">
-            <div class="doh-header">3. HISTORY OF EXPOSURE / RISK ASSESSMENT</div>
+        <!-- HTS SECTION 3: HISTORY OF EXPOSURE / RISK ASSESSMENT -->
+        <div class="doh-border mb-1">
+            <div class="doh-header">HISTORY OF EXPOSURE / RISK ASSESSMENT</div>
             
-            <div class="p-1 bg-amber-50 doh-border-b text-[9px]">
-                <span class="field-label">17. Did your birth mother have HIV when you were born?</span>
-                <span class="field-val font-bold border border-gray-400 px-1 py-0.5 rounded bg-white ml-2">
-                    {{ data.mother_hiv or 'DO NOT KNOW' }}
-                </span>
+            <div class="p-1 bg-amber-50 doh-border-b text-[8px] flex items-center">
+                <span class="item-num">17</span>
+                <div>
+                    <span class="field-label">Did your birth mother have HIV when you were born?</span>
+                    <span class="field-val font-bold border border-gray-400 px-1 py-0.5 rounded bg-white ml-2">
+                        {{ data.mother_hiv or 'DO NOT KNOW' }}
+                    </span>
+                </div>
             </div>
 
-            <table class="w-full text-left border-collapse text-[9px]">
+            <table class="w-full text-left border-collapse text-[8px]">
                 <thead>
                     <tr class="bg-gray-100 doh-border-b font-bold text-gray-800">
-                        <th class="p-1 doh-border-r w-1/2">Exposure Activity</th>
-                        <th class="p-1 text-center w-14">Engaged</th>
-                        <th class="p-1">Date of Most Recent Risk Exposure</th>
+                        <th class="p-0.5 doh-border-r w-1/2">Exposure Activity</th>
+                        <th class="p-0.5 text-center w-12">Engaged</th>
+                        <th class="p-0.5">Date of Most Recent Risk Exposure</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-black font-mono">
                     <tr>
-                        <td class="p-1 doh-border-r font-sans">Sex with a MALE</td>
-                        <td class="p-1 text-center"><input type="checkbox" {% if data.sex_male_bool == 'Yes' %}checked{% endif %}></td>
-                        <td class="p-1">{{ data.sex_male_date or '—' }}</td>
+                        <td class="p-0.5 doh-border-r font-sans">Sex with a MALE</td>
+                        <td class="p-0.5 text-center"><input type="checkbox" {% if data.sex_male_bool == 'Yes' %}checked{% endif %}></td>
+                        <td class="p-0.5">{{ data.sex_male_date or '—' }}</td>
                     </tr>
                     <tr>
-                        <td class="p-1 doh-border-r font-sans">Sex with a FEMALE</td>
-                        <td class="p-1 text-center"><input type="checkbox" {% if data.sex_female_bool == 'Yes' %}checked{% endif %}></td>
-                        <td class="p-1">{{ data.sex_female_date or '—' }}</td>
+                        <td class="p-0.5 doh-border-r font-sans">Sex with a FEMALE</td>
+                        <td class="p-0.5 text-center"><input type="checkbox" {% if data.sex_female_bool == 'Yes' %}checked{% endif %}></td>
+                        <td class="p-0.5">{{ data.sex_female_date or '—' }}</td>
                     </tr>
                     <tr>
-                        <td class="p-1 doh-border-r font-sans">Paid for sex (cash or kind)</td>
-                        <td class="p-1 text-center"><input type="checkbox" {% if data.paid_sex_bool == 'Yes' %}checked{% endif %}></td>
-                        <td class="p-1">{{ data.paid_sex_date or '—' }}</td>
+                        <td class="p-0.5 doh-border-r font-sans">Paid for sex (cash or kind)</td>
+                        <td class="p-0.5 text-center"><input type="checkbox" {% if data.paid_sex_bool == 'Yes' %}checked{% endif %}></td>
+                        <td class="p-0.5">{{ data.paid_sex_date or '—' }}</td>
                     </tr>
                     <tr>
-                        <td class="p-1 doh-border-r font-sans">Received payment for sex</td>
-                        <td class="p-1 text-center"><input type="checkbox" {% if data.received_payment_bool == 'Yes' %}checked{% endif %}></td>
-                        <td class="p-1">{{ data.received_payment_date or '—' }}</td>
+                        <td class="p-0.5 doh-border-r font-sans">Received payment for sex</td>
+                        <td class="p-0.5 text-center"><input type="checkbox" {% if data.received_payment_bool == 'Yes' %}checked{% endif %}></td>
+                        <td class="p-0.5">{{ data.received_payment_date or '—' }}</td>
                     </tr>
                     <tr>
-                        <td class="p-1 doh-border-r font-sans">Sex under influence of drugs</td>
-                        <td class="p-1 text-center"><input type="checkbox" {% if data.drugs_sex_bool == 'Yes' %}checked{% endif %}></td>
-                        <td class="p-1">{{ data.drugs_sex_date or '—' }}</td>
+                        <td class="p-0.5 doh-border-r font-sans">Sex under influence of drugs</td>
+                        <td class="p-0.5 text-center"><input type="checkbox" {% if data.drugs_sex_bool == 'Yes' %}checked{% endif %}></td>
+                        <td class="p-0.5">{{ data.drugs_sex_date or '—' }}</td>
                     </tr>
                     <tr>
-                        <td class="p-1 doh-border-r font-sans">Shared injection needles</td>
-                        <td class="p-1 text-center"><input type="checkbox" {% if data.shared_needles_bool == 'Yes' %}checked{% endif %}></td>
-                        <td class="p-1">{{ data.shared_needles_date or '—' }}</td>
+                        <td class="p-0.5 doh-border-r font-sans">Shared injection needles</td>
+                        <td class="p-0.5 text-center"><input type="checkbox" {% if data.shared_needles_bool == 'Yes' %}checked{% endif %}></td>
+                        <td class="p-0.5">{{ data.shared_needles_date or '—' }}</td>
                     </tr>
                     <tr>
-                        <td class="p-1 doh-border-r font-sans">Received blood transfusion</td>
-                        <td class="p-1 text-center"><input type="checkbox" {% if data.blood_transfusion_bool == 'Yes' %}checked{% endif %}></td>
-                        <td class="p-1">{{ data.blood_transfusion_date or '—' }}</td>
+                        <td class="p-0.5 doh-border-r font-sans">Received blood transfusion</td>
+                        <td class="p-0.5 text-center"><input type="checkbox" {% if data.blood_transfusion_bool == 'Yes' %}checked{% endif %}></td>
+                        <td class="p-0.5">{{ data.blood_transfusion_date or '—' }}</td>
                     </tr>
                     <tr>
-                        <td class="p-1 doh-border-r font-sans">Occupational exposure</td>
-                        <td class="p-1 text-center"><input type="checkbox" {% if data.occupational_exposure_bool == 'Yes' %}checked{% endif %}></td>
-                        <td class="p-1">{{ data.occupational_exposure_date or '—' }}</td>
+                        <td class="p-0.5 doh-border-r font-sans">Occupational exposure</td>
+                        <td class="p-0.5 text-center"><input type="checkbox" {% if data.occupational_exposure_bool == 'Yes' %}checked{% endif %}></td>
+                        <td class="p-0.5">{{ data.occupational_exposure_date or '—' }}</td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <!-- HTS SECTION 4: PREVIOUS TEST & COUNSELING NOTES -->
-        <div class="doh-border mb-1.5">
-            <div class="doh-header">4. PREVIOUS TESTING & COUNSELING OBSERVATIONS</div>
-            <div class="p-1.5 text-[9.5px] space-y-1">
-                <div>
-                    <span class="field-label block">19. Previous HIV Test History:</span>
-                    <span class="field-val">
-                        {% if data.prev_test_bool == 'Yes' %}
-                            Tested: {{ data.prev_test_date or 'Date N/A' }} | Facility: {{ data.prev_test_facility or 'N/A' }} | City: {{ data.prev_test_city or 'N/A' }} | Result: {{ data.prev_test_result or 'N/A' }}
-                        {% else %}
-                            Never Tested Previously
-                        {% endif %}
-                    </span>
+        <!-- HTS SECTION 4: PREVIOUS TESTING & COUNSELING NOTES -->
+        <div class="doh-border mb-1">
+            <div class="doh-header">PREVIOUS TESTING & COUNSELING OBSERVATIONS</div>
+            <div class="p-1 text-[8.5px] space-y-1">
+                <div class="flex items-center">
+                    <span class="item-num">19</span>
+                    <div>
+                        <span class="field-label block">Previous HIV Test History:</span>
+                        <span class="field-val">
+                            {% if data.prev_test_bool == 'Yes' %}
+                                Tested: {{ data.prev_test_date or 'Date N/A' }} | Facility: {{ data.prev_test_facility or 'N/A' }} | City: {{ data.prev_test_city or 'N/A' }} | Result: {{ data.prev_test_result or 'N/A' }}
+                            {% else %}
+                                Never Tested Previously
+                            {% endif %}
+                        </span>
+                    </div>
                 </div>
                 <div>
-                    <span class="field-label block">Pre-test / Post-test Counseling Observations:</span>
-                    <p class="field-val font-sans bg-gray-50 p-1 border border-gray-300 rounded text-[9px]">
+                    <span class="field-label block">Counseling Observations:</span>
+                    <p class="field-val font-sans bg-gray-50 p-1 border border-gray-300 rounded text-[8px]">
                         {{ data.counseling_notes or 'No remarks entered.' }}
                     </p>
                 </div>
             </div>
         </div>
 
-        <!-- HTS SECTION 5: SIGNATURE & T0 SCREENING LINKAGE OUTCOME -->
-        <div class="doh-border mb-2">
-            <div class="doh-header">5. CLIENT SIGNATURE & T0 LINKAGE EVALUATION</div>
-            <div class="p-1.5 grid grid-cols-2 gap-2 items-center">
+        <!-- HTS SECTION 5: SIGNATURE & T0 LINKAGE EVALUATION -->
+        <div class="doh-border mb-1">
+            <div class="doh-header">CLIENT SIGNATURE & LINKAGE OUTCOME RESULT</div>
+            <div class="p-1 grid grid-cols-2 gap-2 items-center">
                 <div class="text-center">
-                    <span class="field-label block mb-0.5">Authenticated Electronic Consent Signature:</span>
+                    <span class="field-label block mb-0.5">Authenticated Consent Signature:</span>
                     {% if data.client_signature %}
-                        <img src="{{ data.client_signature }}" alt="Client Signature" class="max-h-20 mx-auto doh-border bg-white p-0.5">
+                        <img src="{{ data.client_signature }}" alt="Client Signature" class="max-h-14 mx-auto doh-border bg-white p-0.5">
                     {% else %}
-                        <p class="text-gray-500 italic text-[8.5px]">No electronic signature captured.</p>
+                        <p class="text-gray-500 italic text-[7.5px]">No electronic signature captured.</p>
                     {% endif %}
                 </div>
-                <div class="text-center p-1.5 bg-amber-50 doh-border">
-                    <span class="field-label block text-[10px] mb-0.5">HTS SCREENING LINKAGE OUTCOME RESULT</span>
-                    <span class="font-mono text-sm font-black text-red-700 uppercase">
+                <div class="text-center p-1 bg-amber-50 doh-border">
+                    <span class="field-label block text-[8.5px] mb-0.5">SCREENING LINKAGE OUTCOME RESULT</span>
+                    <span class="font-mono text-xs font-black text-red-700 uppercase">
                         ⚠️ {{ data.linkage_result or data.result or 'PENDING EVALUATION' }}
                     </span>
                 </div>
@@ -343,15 +426,21 @@
         </div>
 
         <!-- FOOTER PROVIDER AUTHORIZATION -->
-        <div class="pt-1 doh-border-t grid grid-cols-2 gap-4 text-[9.5px]">
-            <div>
-                <span class="field-label">Primary Testing Facility:</span>
-                <p class="font-bold text-black uppercase font-mono mt-0.5">LAKAN NETWORK</p>
+        <div class="pt-0.5 doh-border-t grid grid-cols-2 gap-4 text-[8px]">
+            <div class="flex items-center">
+                <span class="item-num">26</span>
+                <div>
+                    <span class="field-label block">Name of Testing Facility:</span>
+                    <p class="font-bold text-black uppercase font-mono mt-0.5">LAKAN NETWORK</p>
+                </div>
             </div>
-            <div class="text-right">
-                <span class="field-label">Service Provider Name & Signature</span>
-                <div class="mt-1 border-b border-black inline-block w-48 text-center font-mono font-bold text-xs uppercase">
-                    {{ data.service_provider_name or staff_nickname or 'AUTHORIZED PROVIDER' }}
+            <div class="text-right flex items-center justify-end">
+                <span class="item-num mr-1">27</span>
+                <div>
+                    <span class="field-label block">Name & Signature of Service Provider:</span>
+                    <div class="mt-0.5 border-b border-black inline-block w-40 text-center font-mono font-bold text-xs uppercase">
+                        {{ data.service_provider_name or staff_nickname or 'AUTHORIZED PROVIDER' }}
+                    </div>
                 </div>
             </div>
         </div>

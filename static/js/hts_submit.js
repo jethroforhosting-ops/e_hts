@@ -3,6 +3,16 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentRecordId = null; 
     let hasSignatureDrawn = false;
 
+    // Helper function to reformat YYYY-MM-DD into MMDDYYYY for UIC key
+    function formatUICBirthDate(dateStr) {
+        if (!dateStr) return "00000000";
+        const parts = dateStr.split('-'); 
+        if (parts.length === 3) {
+            return `${parts[1]}${parts[2]}${parts[0]}`; // MMDDYYYY
+        }
+        return "00000000";
+    }
+
     // ==========================================
     // 1. PSGC ADDRESS POPULATION
     // ==========================================
@@ -379,8 +389,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const mother = (data.mother_code || "").toUpperCase();
         const father = (data.father_code || "").toUpperCase();
         const order = String(data.birth_order || "").padStart(2, "0");
-        const bdate = (data.birth_date || "").replace(/-/g, "");
-        document.getElementById('summary-uic').innerText = `${mother}${father}${order}${bdate}` || 'N/A';
+        const bdateFormatted = formatUICBirthDate(data.birth_date);
+        document.getElementById('summary-uic').innerText = `${mother}${father}${order}${bdateFormatted}` || 'N/A';
 
         const currAddr = data.curr_province_text ? `${data.curr_barangay_text || ''}, ${data.curr_city_text || ''}, ${data.curr_province_text || ''}` : `${data.curr_barangay || ''}, ${data.curr_city || ''}, ${data.curr_province || ''}`;
         document.getElementById('summary-curr-addr').innerText = currAddr.replace(/^, |, $/g, '') || 'N/A';
@@ -521,8 +531,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const mother = (payload.mother_code || "").toUpperCase();
         const father = (payload.father_code || "").toUpperCase();
         const order = String(payload.birth_order || "").padStart(2, "0");
-        const bdate = (payload.birth_date || "").replace(/-/g, "");
-        payload.uic = `${mother}${father}${order}${bdate}`;
+        const bdateFormatted = formatUICBirthDate(payload.birth_date);
+        payload.uic = `${mother}${father}${order}${bdateFormatted}`;
 
         if (navigator.onLine) {
             // 1. Save directly to Firebase Cloud Firestore
@@ -567,7 +577,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Save final linkage result and trigger PDF print export window
     document.getElementById('linkage-form')?.addEventListener('submit', async (e) => {
-        e.preventDefault(); // Prevents standard form submission and page refresh
+        e.preventDefault(); 
         
         const resultVal = document.getElementById('linkage-result').value;
         if (!resultVal) return;
