@@ -146,7 +146,7 @@
                     tr.innerHTML = `
                         <td class="px-4"><input class="form-check-input record-checkbox" type="checkbox" value="${id}"></td>
                         <td class="px-4">${syncBadge}</td>
-                        <td class="px-4 font-monospace">${data.test_date or 'N/A'}</td>
+<td class="px-4 font-monospace">${data.test_date || 'N/A'}</td>
                         <td class="px-4 fw-bold text-amber-custom font-monospace">${uic}</td>
                         <td class="px-4">
                             <select class="form-select form-select-sm result-select" data-id="${id}">
