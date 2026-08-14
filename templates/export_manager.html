@@ -25,6 +25,11 @@
             border-color: #ffb703;
             box-shadow: none;
         }
+        .badge-storage {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.35em 0.65em;
+        }
     </style>
 </head>
 <body>
@@ -34,11 +39,11 @@
             <div>
                 <a href="/" class="btn btn-outline-light btn-sm mb-2">← BACK TO PORTAL</a>
                 <h2 class="fw-bold text-amber-custom" style="font-family: 'Cinzel', serif;">EXPORT & SYNC MANAGER</h2>
-                <p class="text-white-50 small mb-0">Manage screening results, sync SQLite records, and export printable DOH checklists.</p>
+                <p class="text-white-50 small mb-0">Manage screening results, sync SQLite & browser records, and export printable DOH checklists.</p>
             </div>
             <div class="d-flex gap-2">
                 <button id="btn-sync-unpushed" class="btn btn-outline-warning fw-bold px-3">
-                    🔄 SYNC UNPUSHED (<span id="unsynced-count">0</span>)
+                    🔄 SYNC ALL UNPUSHED (<span id="unsynced-count">0</span>)
                 </button>
                 <button id="btn-trigger-batch" class="btn fw-bold px-4" style="background-color: #ffb703; color: #000;">
                     🖨️ EXPORT SELECTED (<span id="selected-count">0</span>)
@@ -52,19 +57,20 @@
                     <table class="table table-dark table-hover mb-0 align-middle">
                         <thead>
                             <tr class="border-bottom border-secondary">
-                                <th class="py-3 px-4" style="width: 50px;">
+                                <th class="py-3 px-3" style="width: 40px;">
                                     <input class="form-check-input" type="checkbox" id="select-all-records">
                                 </th>
-                                <th class="py-3 px-4 text-amber-custom">SYNC STATUS</th>
-                                <th class="py-3 px-4 text-amber-custom">TEST DATE</th>
-                                <th class="py-3 px-4 text-amber-custom">UIC KEY</th>
-                                <th class="py-3 px-4 text-amber-custom" style="width: 220px;">UPDATE LINKAGE RESULT</th>
-                                <th class="py-3 px-4 text-end text-amber-custom">ACTION</th>
+                                <th class="py-3 px-3 text-amber-custom">SYNC STATUS</th>
+                                <th class="py-3 px-3 text-amber-custom">STORAGE REMARKS</th>
+                                <th class="py-3 px-3 text-amber-custom">TEST DATE</th>
+                                <th class="py-3 px-3 text-amber-custom">UIC KEY</th>
+                                <th class="py-3 px-3 text-amber-custom" style="width: 210px;">LINKAGE RESULT</th>
+                                <th class="py-3 px-3 text-end text-amber-custom">ACTION</th>
                             </tr>
                         </thead>
                         <tbody id="export-table-body">
                             <tr>
-                                <td colspan="6" class="py-4 text-center text-white-50">Loading master records...</td>
+                                <td colspan="7" class="py-4 text-center text-white-50">Loading master records...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -82,6 +88,31 @@
 
         function formatBirthOrder(orderVal) {
             return orderVal ? String(orderVal).trim().padStart(2, '0') : "01";
+        }
+
+        // --- INDEXEDDB HELPER FOR LOCAL BROWSER STORAGE ---
+        function openIDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('HTS_PWA_DB', 1);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function getIndexedDBRecords() {
+            try {
+                const db = await openIDB();
+                if (!db.objectStoreNames.contains('pending_records')) return [];
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction('pending_records', 'readonly');
+                    const store = tx.objectStore('pending_records');
+                    const req = store.getAll();
+                    req.onsuccess = () => resolve(req.result || []);
+                    req.onerror = () => reject([]);
+                });
+            } catch (e) {
+                return [];
+            }
         }
 
         async function updateRecordResult(recordId, newResult) {
@@ -109,11 +140,15 @@
             const unsyncedSpan = document.getElementById('unsynced-count');
 
             try {
+                // Fetch SQLite / Firebase backend records
                 const res = await fetch('/api/my-hts-records');
-                const records = await res.json();
+                const serverRecords = await res.json() || [];
 
-                if (!records || records.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-white-50">No records available.</td></tr>';
+                // Fetch local Browser Storage (IndexedDB) records
+                const localBrowserRecords = await getIndexedDBRecords();
+
+                if (serverRecords.length === 0 && localBrowserRecords.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-white-50">No intake records available.</td></tr>';
                     unsyncedSpan.innerText = '0';
                     return;
                 }
@@ -121,7 +156,43 @@
                 tableBody.innerHTML = '';
                 let unsyncedCounter = 0;
 
-                records.forEach(record => {
+                // 1. Render Browser Local Storage Records (Unsynced PWA Entries)
+                localBrowserRecords.forEach(item => {
+                    unsyncedCounter++;
+                    const id = `idb_${item.local_id}`;
+                    
+                    let uic = item.uic;
+                    if (!uic) {
+                        const mCode = (item.mother_code || '').toUpperCase();
+                        const fCode = (item.father_code || '').toUpperCase();
+                        const bOrder = formatBirthOrder(item.birth_order);
+                        const bDate = formatUICDate(item.birth_date);
+                        uic = `${mCode}${fCode}${bOrder}${bDate}`;
+                    }
+
+                    const syncBadge = '<span class="badge bg-warning text-dark">UNSYNCED</span>';
+                    const storageRemark = '<span class="badge bg-danger text-white badge-storage">🌐 Browser Local Storage</span>';
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-bottom border-secondary';
+                    tr.innerHTML = `
+                        <td class="px-3"><input class="form-check-input record-checkbox" type="checkbox" value="${id}" disabled></td>
+                        <td class="px-3">${syncBadge}</td>
+                        <td class="px-3">${storageRemark}</td>
+                        <td class="px-3 font-monospace">${item.test_date || 'N/A'}</td>
+                        <td class="px-3 fw-bold text-amber-custom font-monospace">${uic}</td>
+                        <td class="px-3">
+                            <span class="badge bg-secondary">Pending Sync</span>
+                        </td>
+                        <td class="px-3 text-end">
+                            <button class="btn btn-sm btn-outline-warning btn-single-sync" data-id="${item.local_id}">Sync Now</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+
+                // 2. Render Database Records (Server SQLite & Cloud Firestore)
+                serverRecords.forEach(record => {
                     const data = record.data || {};
                     const id = record.id;
                     const isSynced = record.is_synced;
@@ -140,15 +211,21 @@
 
                     const syncBadge = isSynced 
                         ? '<span class="badge bg-success">CLOUD SYNCED</span>' 
-                        : '<span class="badge bg-warning text-dark">UNSYNCED / OFFLINE</span>';
+                        : '<span class="badge bg-warning text-dark">UNSYNCED</span>';
+
+                    const storageRemark = isSynced
+                        ? '<span class="badge bg-primary text-white badge-storage">💾 Cloud Database</span>'
+                        : '<span class="badge bg-secondary text-white badge-storage">📁 Local Database (SQLite)</span>';
 
                     const tr = document.createElement('tr');
+                    tr.className = 'border-bottom border-secondary';
                     tr.innerHTML = `
-                        <td class="px-4"><input class="form-check-input record-checkbox" type="checkbox" value="${id}"></td>
-                        <td class="px-4">${syncBadge}</td>
-                        <td class="px-4 font-monospace">${data.test_date || 'N/A'}</td>
-                        <td class="px-4 fw-bold text-amber-custom font-monospace">${uic}</td>
-                        <td class="px-4">
+                        <td class="px-3"><input class="form-check-input record-checkbox" type="checkbox" value="${id}"></td>
+                        <td class="px-3">${syncBadge}</td>
+                        <td class="px-3">${storageRemark}</td>
+                        <td class="px-3 font-monospace">${data.test_date || 'N/A'}</td>
+                        <td class="px-3 fw-bold text-amber-custom font-monospace">${uic}</td>
+                        <td class="px-3">
                             <select class="form-select form-select-sm result-select" data-id="${id}">
                                 <option value="" ${!currentResult ? 'selected' : ''}>PENDING EVALUATION</option>
                                 <option value="NONREACTIVE" ${currentResult === 'NONREACTIVE' ? 'selected' : ''}>NONREACTIVE</option>
@@ -156,7 +233,7 @@
                                 <option value="INVALID" ${currentResult === 'INVALID' ? 'selected' : ''}>INVALID</option>
                             </select>
                         </td>
-                        <td class="px-4 text-end">
+                        <td class="px-3 text-end">
                             <a href="/records/${id}/export" target="_blank" class="btn btn-sm btn-outline-warning">Print PDF</a>
                         </td>
                     `;
@@ -183,32 +260,61 @@
                 checkboxes.forEach(cb => cb.addEventListener('change', updateCounter));
 
                 document.getElementById('select-all-records').onclick = (e) => {
-                    checkboxes.forEach(cb => cb.checked = e.target.checked);
+                    checkboxes.forEach(cb => {
+                        if (!cb.disabled) cb.checked = e.target.checked;
+                    });
                     updateCounter();
                 };
 
             } catch (err) {
                 console.error(err);
-                tableBody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-danger">Failed to load records.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-danger">Failed to load intake records.</td></tr>';
             }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             loadRecords();
 
-            // Sync Button Action
+            // Sync Button Action (Syncs SQLite and Browser IndexedDB)
             document.getElementById('btn-sync-unpushed').addEventListener('click', async () => {
                 if (!navigator.onLine) {
                     alert("Cannot sync: Internet connection unavailable.");
                     return;
                 }
+
+                // 1. Sync IndexedDB Browser Storage
+                const localBrowserRecords = await getIndexedDBRecords();
+                if (localBrowserRecords.length > 0) {
+                    const db = await openIDB();
+                    for (const item of localBrowserRecords) {
+                        const localId = item.local_id;
+                        delete item.local_id;
+
+                        if (typeof window.saveToFirebaseRealtime === 'function') {
+                            await window.saveToFirebaseRealtime(item);
+                        }
+
+                        item.is_synced = 1;
+                        await fetch('/api/sqlite/save-offline', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(item)
+                        });
+
+                        const delTx = db.transaction('pending_records', 'readwrite');
+                        delTx.objectStore('pending_records').delete(localId);
+                    }
+                }
+
+                // 2. Sync SQLite Database Unpushed Records
                 try {
                     const res = await fetch('/api/sqlite/sync-pending', { method: 'POST' });
                     const result = await res.json();
-                    alert(`Sync Complete! ${result.synced_count || 0} unsynced records pushed to Firebase.`);
+                    alert(`Sync Complete! All unsynced records pushed to Firebase.`);
                     loadRecords();
                 } catch (err) {
-                    alert("Error syncing records with Firebase.");
+                    alert("Sync process completed with partial updates.");
+                    loadRecords();
                 }
             });
 

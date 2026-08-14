@@ -112,7 +112,10 @@
                         <span class="item-num">1</span>
                         <div>
                             <span class="field-label block">Test Date:</span>
-                            <span class="field-val text-emerald-900">{{ data.test_date or 'N/A' }}</span>
+                            <span class="field-val text-emerald-900">
+                                {% set td = data.test_date.split('-') if data.test_date and '-' in data.test_date else [] %}
+                                {% if td|length == 3 %}{{ td[1] }}/{{ td[2] }}/{{ td[0] }}{% else %}{{ data.test_date or 'N/A' }}{% endif %}
+                            </span>
                         </div>
                     </div>
                     <div class="col-span-2 flex items-center">
@@ -168,19 +171,17 @@
                         <div class="text-right">
                             <span class="field-label block">Unique Identifier Code (UIC Key):</span>
                             <span class="field-val tracking-widest text-emerald-900 font-black text-xs">
-                            <!-- Inside hts_export_template.html -->
-<span class="field-val tracking-widest text-emerald-900 font-black text-xs">
-    {% if data.uic %}
-        {{ data.uic }}
-    {% else %}
-        {% set b = data.birth_date.split('-') if data.birth_date and '-' in data.birth_date else [] %}
-        {% if b|length == 3 %}
-            {{ data.mother_code | default('', true) | upper }}{{ data.father_code | default('', true) | upper }}{{ (data.birth_order | string).zfill(2) if data.birth_order else '01' }}{{ b[1] }}{{ b[2] }}{{ b[0] }}
-        {% else %}
-            {{ data.mother_code | default('', true) | upper }}{{ data.father_code | default('', true) | upper }}{{ (data.birth_order | string).zfill(2) if data.birth_order else '01' }}00000000
-        {% endif %}
-    {% endif %}
-</span>
+                                {% if data.uic %}
+                                    {{ data.uic }}
+                                {% else %}
+                                    {% set b = data.birth_date.split('-') if data.birth_date and '-' in data.birth_date else [] %}
+                                    {% if b|length == 3 %}
+                                        {{ data.mother_code | default('', true) | upper }}{{ data.father_code | default('', true) | upper }}{{ (data.birth_order | string).zfill(2) if data.birth_order else '01' }}{{ b[1] }}{{ b[2] }}{{ b[0] }}
+                                    {% else %}
+                                        {{ data.mother_code | default('', true) | upper }}{{ data.father_code | default('', true) | upper }}{{ (data.birth_order | string).zfill(2) if data.birth_order else '01' }}00000000
+                                    {% endif %}
+                                {% endif %}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -191,7 +192,11 @@
                         <span class="item-num">6</span>
                         <div>
                             <span class="field-label block">Birth Date & Age:</span>
-                            <span class="field-val">{{ data.birth_date or 'N/A' }} ({{ data.age_years or '0' }} Yrs {% if data.age_months %}/ {{ data.age_months }} Mos{% endif %})</span>
+                            <span class="field-val">
+                                {% set bd = data.birth_date.split('-') if data.birth_date and '-' in data.birth_date else [] %}
+                                {% if bd|length == 3 %}{{ bd[1] }}/{{ bd[2] }}/{{ bd[0] }}{% else %}{{ data.birth_date or 'N/A' }}{% endif %}
+                                ({{ data.age_years or '0' }} Yrs {% if data.age_months %}/ {{ data.age_months }} Mos{% endif %})
+                            </span>
                         </div>
                     </div>
                     <div class="col-span-2 flex items-center">
