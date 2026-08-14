@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#ffb703">
-    <title>ALTERS - HTS Intake Form</title>
+    <title>e-HTS Form</title>
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
@@ -58,7 +58,7 @@
     </div>
 
     <div class="brand-header text-center mb-4">
-        <h1>ALTERS INTAKE</h1>
+        <h1>e-HTS Form</h1>
         <div class="amber-divider"></div>
         <p class="text-white small" id="step-indicator">Step 1 of 6</p>
     </div>
@@ -497,6 +497,16 @@
                                         </div>
                                     </td>
                                     <td><input type="month" class="form-control form-control-sm d-none" name="received_payment_date"></td>
+                                </tr>
+                                <!-- RESTORED ROW: SEX UNDER INFLUENCE OF DRUGS -->
+                                <tr>
+                                    <td class="text-white">Sex under influence of drugs</td>
+                                    <td class="text-center">
+                                        <div class="form-check form-switch d-inline-block">
+                                            <input class="form-check-input date-trigger" type="checkbox" name="drugs_sex_bool" value="Yes">
+                                        </div>
+                                    </td>
+                                    <td><input type="month" class="form-control form-control-sm d-none" name="drugs_sex_date"></td>
                                 </tr>
                                 <tr>
                                     <td class="text-white">Shared injection needles</td>
