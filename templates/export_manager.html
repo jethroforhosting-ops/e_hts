@@ -12,6 +12,19 @@
         .card-custom { background-color: #111; border: 1px solid #333; }
         .table-dark { --bs-table-bg: #111; }
         .form-check-input:checked { background-color: #ffb703; border-color: #ffb703; }
+        .result-select {
+            background-color: #222;
+            color: #fff;
+            border: 1px solid #444;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+        .result-select:focus {
+            background-color: #222;
+            color: #fff;
+            border-color: #ffb703;
+            box-shadow: none;
+        }
     </style>
 </head>
 <body>
@@ -19,9 +32,9 @@
     <div class="container py-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <a href="/hts-form" class="btn btn-outline-light btn-sm mb-2">← BACK TO INTAKE FORM</a>
+                <a href="/" class="btn btn-outline-light btn-sm mb-2">← BACK TO PORTAL</a>
                 <h2 class="fw-bold text-amber-custom" style="font-family: 'Cinzel', serif;">EXPORT & SYNC MANAGER</h2>
-                <p class="text-white-50 small mb-0">View synced vs unsynced SQLite records and compile printable DOH checklists.</p>
+                <p class="text-white-50 small mb-0">Manage screening results, sync SQLite records, and export printable DOH checklists.</p>
             </div>
             <div class="d-flex gap-2">
                 <button id="btn-sync-unpushed" class="btn btn-outline-warning fw-bold px-3">
@@ -45,7 +58,7 @@
                                 <th class="py-3 px-4 text-amber-custom">SYNC STATUS</th>
                                 <th class="py-3 px-4 text-amber-custom">TEST DATE</th>
                                 <th class="py-3 px-4 text-amber-custom">UIC KEY</th>
-                                <th class="py-3 px-4 text-amber-custom">RESULT STATUS</th>
+                                <th class="py-3 px-4 text-amber-custom" style="width: 220px;">UPDATE LINKAGE RESULT</th>
                                 <th class="py-3 px-4 text-end text-amber-custom">ACTION</th>
                             </tr>
                         </thead>
@@ -71,6 +84,26 @@
             return orderVal ? String(orderVal).trim().padStart(2, '0') : "01";
         }
 
+        async function updateRecordResult(recordId, newResult) {
+            if (!newResult) return;
+            try {
+                const response = await fetch(`/api/records/${recordId}/update-linkage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ linkage_result: newResult })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    console.log(`Linkage result updated to ${newResult} for record ${recordId}`);
+                } else {
+                    alert(`Failed to update result: ${data.error || 'Unknown error'}`);
+                }
+            } catch (err) {
+                console.error('Update Result Error:', err);
+                alert('Error updating linkage result.');
+            }
+        }
+
         async function loadRecords() {
             const tableBody = document.getElementById('export-table-body');
             const unsyncedSpan = document.getElementById('unsynced-count');
@@ -80,7 +113,7 @@
                 const records = await res.json();
 
                 if (!records || records.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-white-50">No records available in local SQLite DB.</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-white-50">No records available.</td></tr>';
                     unsyncedSpan.innerText = '0';
                     return;
                 }
@@ -92,6 +125,7 @@
                     const data = record.data || {};
                     const id = record.id;
                     const isSynced = record.is_synced;
+                    const currentResult = data.linkage_result || data.result || '';
 
                     if (!isSynced) unsyncedCounter++;
 
@@ -112,9 +146,16 @@
                     tr.innerHTML = `
                         <td class="px-4"><input class="form-check-input record-checkbox" type="checkbox" value="${id}"></td>
                         <td class="px-4">${syncBadge}</td>
-                        <td class="px-4 font-monospace">${data.test_date || 'N/A'}</td>
-                        <td class="px-4 fw-bold text-amber-custom">${uic}</td>
-                        <td class="px-4"><span class="badge ${data.linkage_result === 'REACTIVE' ? 'bg-danger' : (data.linkage_result === 'NONREACTIVE' ? 'bg-success' : 'bg-secondary')}">${data.linkage_result || 'PENDING'}</span></td>
+                        <td class="px-4 font-monospace">${data.test_date or 'N/A'}</td>
+                        <td class="px-4 fw-bold text-amber-custom font-monospace">${uic}</td>
+                        <td class="px-4">
+                            <select class="form-select form-select-sm result-select" data-id="${id}">
+                                <option value="" ${!currentResult ? 'selected' : ''}>PENDING EVALUATION</option>
+                                <option value="NONREACTIVE" ${currentResult === 'NONREACTIVE' ? 'selected' : ''}>NONREACTIVE</option>
+                                <option value="REACTIVE" ${currentResult === 'REACTIVE' ? 'selected' : ''}>REACTIVE</option>
+                                <option value="INVALID" ${currentResult === 'INVALID' ? 'selected' : ''}>INVALID</option>
+                            </select>
+                        </td>
                         <td class="px-4 text-end">
                             <a href="/records/${id}/export" target="_blank" class="btn btn-sm btn-outline-warning">Print PDF</a>
                         </td>
@@ -124,6 +165,16 @@
 
                 unsyncedSpan.innerText = unsyncedCounter;
 
+                // Attach event listeners for Result Select Dropdowns
+                document.querySelectorAll('.result-select').forEach(select => {
+                    select.addEventListener('change', (e) => {
+                        const recordId = e.target.getAttribute('data-id');
+                        const newResult = e.target.value;
+                        updateRecordResult(recordId, newResult);
+                    });
+                });
+
+                // Attach counter updates for checkboxes
                 const checkboxes = document.querySelectorAll('.record-checkbox');
                 function updateCounter() {
                     document.getElementById('selected-count').innerText = document.querySelectorAll('.record-checkbox:checked').length;
