@@ -459,120 +459,109 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('btn-proceed-to-linkage-step')?.click();
     });
 
+// ==========================================
+    // 8. GUARANTEED OFFLINE QUEUE & AUTO-SYNC ENGINE
     // ==========================================
-    // 8. PWA OFFLINE QUEUE & LOCALSTORAGE FALLBACK ENGINE
-    // ==========================================
-    function openIDB() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open('HTS_PWA_DB', 1);
-            request.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                if (!db.objectStoreNames.contains('pending_records')) {
-                    db.createObjectStore('pending_records', { keyPath: 'local_id', autoIncrement: true });
-                }
-            };
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
-    }
-
-    async function saveToIndexedDB(payload) {
-        // Also write to localStorage for guaranteed browser-level export manager visibility
+    function getLocalQueue() {
         try {
-            const localRecords = JSON.parse(localStorage.getItem('offline_hts_records') || '[]');
-            localRecords.push(payload);
-            localStorage.setItem('offline_hts_records', JSON.stringify(localRecords));
+            return JSON.parse(localStorage.getItem('offline_hts_records') || '[]');
         } catch (e) {
-            console.error("LocalStorage Backup Error:", e);
+            return [];
         }
-
-        const db = await openIDB();
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction('pending_records', 'readwrite');
-            const store = tx.objectStore('pending_records');
-            const req = store.add(payload);
-            req.onsuccess = () => resolve(req.result);
-            req.onerror = () => reject(req.error);
-        });
     }
 
-    async function syncIndexedDBToCloud() {
+    function saveToLocalQueue(payload) {
+        try {
+            const queue = getLocalQueue();
+            queue.push(payload);
+            localStorage.setItem('offline_hts_records', JSON.stringify(queue));
+            console.log("💾 Record saved to LocalStorage Queue:", payload);
+            return true;
+        } catch (e) {
+            console.error("LocalStorage Save Error:", e);
+            return false;
+        }
+    }
+
+    async function syncLocalQueueToCloud() {
         if (!navigator.onLine) return;
-        
-        // 1. Sync localStorage Backup
-        try {
-            const localRecords = JSON.parse(localStorage.getItem('offline_hts_records') || '[]');
-            if (localRecords.length > 0) {
-                for (const item of localRecords) {
-                    await fetch('/api/sqlite/save-offline', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(item)
-                    });
+
+        const queue = getLocalQueue();
+        if (queue.length === 0) return;
+
+        console.log(`🌐 Online detected: Attempting to sync ${queue.length} offline records...`);
+
+        const remainingQueue = [];
+
+        for (const item of queue) {
+            let synced = false;
+
+            // 1. Attempt Firestore Direct Write if Firebase helper exists
+            if (typeof window.saveToFirebaseRealtime === 'function') {
+                try {
+                    await window.saveToFirebaseRealtime(item);
+                    synced = true;
+                } catch (err) {
+                    console.warn("Firebase Direct Sync failed, falling back to SQLite API:", err);
                 }
-                localStorage.removeItem('offline_hts_records');
             }
-        } catch (e) {
-            console.error("LocalStorage Auto-Sync Error:", e);
+
+            // 2. Fallback to SQLite Backend API
+            try {
+                const res = await fetch('/api/sqlite/save-offline', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(item)
+                });
+                if (res.ok) synced = true;
+            } catch (err) {
+                console.error("Backend API Sync failed:", err);
+            }
+
+            if (!synced) {
+                remainingQueue.push(item);
+            }
         }
 
-        // 2. Sync IndexedDB
-        try {
-            const db = await openIDB();
-            const tx = db.transaction('pending_records', 'readwrite');
-            const store = tx.objectStore('pending_records');
-            const getAllReq = store.getAll();
-
-            getAllReq.onsuccess = async () => {
-                const pendingList = getAllReq.result || [];
-                if (pendingList.length === 0) return;
-
-                for (const item of pendingList) {
-                    const localId = item.local_id;
-                    delete item.local_id;
-
-                    await fetch('/api/sqlite/save-offline', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(item)
-                    });
-
-                    const delTx = db.transaction('pending_records', 'readwrite');
-                    delTx.objectStore('pending_records').delete(localId);
-                }
-            };
-        } catch (err) {
-            console.error("PWA Auto-Sync Error:", err);
+        // Update local storage with any remaining failed items
+        if (remainingQueue.length > 0) {
+            localStorage.setItem('offline_hts_records', JSON.stringify(remainingQueue));
+        } else {
+            localStorage.removeItem('offline_hts_records');
+            console.log("✅ All offline records synced successfully!");
         }
     }
 
-    // Auto-trigger sync on load if online
-    if (navigator.onLine) {
-        syncIndexedDBToCloud();
-    }
+    // Auto-sync immediately if online when page loads or comes online
+    if (navigator.onLine) syncLocalQueueToCloud();
+    window.addEventListener("online", syncLocalQueueToCloud);
 
     // ==========================================
     // 9. DUAL SUBMIT & LINKAGE HANDLER
     // ==========================================
     const btnProceedStep = document.getElementById('btn-proceed-to-linkage-step');
-    btnProceedStep?.addEventListener('click', async () => {
+    btnProceedStep?.addEventListener('click', async (e) => {
+        e.preventDefault();
+
         const form = document.getElementById('hts-data-form');
         const formData = new FormData(form);
         const payload = Object.fromEntries(formData.entries());
 
+        // Standardize UIC Format
         const mother = (payload.mother_code || "").toUpperCase();
         const father = (payload.father_code || "").toUpperCase();
         const order = String(payload.birth_order || "").padStart(2, "0");
         const bdateFormatted = formatUICBirthDate(payload.birth_date);
         payload.uic = `${mother}${father}${order}${bdateFormatted}`;
 
-        if (navigator.onLine) {
-            let firebaseKey = null;
-            if (typeof window.saveToFirebaseRealtime === 'function') {
-                firebaseKey = await window.saveToFirebaseRealtime(payload);
-            }
+        // ALWAYS save to LocalStorage first as an absolute safety net
+        saveToLocalQueue(payload);
 
-            payload.is_synced = firebaseKey ? 1 : 0;
+        if (navigator.onLine) {
+            // Attempt cloud sync immediately since we're online
+            await syncLocalQueueToCloud();
+            
+            // Fetch assigned record ID from server if available
             try {
                 const response = await fetch('/api/sqlite/save-offline', {
                     method: 'POST',
@@ -580,52 +569,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify(payload)
                 });
                 const resData = await response.json();
-                currentRecordId = resData.record_id;
+                currentRecordId = resData.record_id || `uic_${payload.uic}`;
             } catch (err) {
-                console.error("SQLite Save Error:", err);
-                const localId = await saveToIndexedDB(payload);
-                currentRecordId = `browser_idb_${localId}`;
+                currentRecordId = `uic_${payload.uic}`;
             }
         } else {
-            // OFFLINE MODE: Save to local memory
-            payload.is_synced = 0;
-            const localId = await saveToIndexedDB(payload);
-            currentRecordId = `browser_idb_${localId}`;
-            alert("🌐 Offline Mode Active: Form saved locally on your device! You can view and sync it under Export Manager once online.");
+            // OFFLINE MODE
+            currentRecordId = `local_uic_${payload.uic}`;
+            alert("🌐 Offline Mode: Form saved locally on your phone! Reconnect to WiFi/Data and open Export Manager to sync.");
         }
 
-        const genLinkModal = new bootstrap.Modal(document.getElementById('generatedLinkModal'));
-        genLinkModal.show();
+        // Display Linkage Modal
+        const genLinkModalEl = document.getElementById('generatedLinkModal');
+        if (genLinkModalEl) {
+            const genLinkModal = new bootstrap.Modal(genLinkModalEl);
+            genLinkModal.show();
 
-        document.getElementById('btn-modal-proceed-linkage').onclick = () => {
-            genLinkModal.hide();
-            const linkageModal = new bootstrap.Modal(document.getElementById('linkageModal'));
-            linkageModal.show();
-        };
-    });
-
-    // Save final linkage result and trigger PDF print export window
-    document.getElementById('linkage-form')?.addEventListener('submit', async (e) => {
-        e.preventDefault(); 
-        
-        const resultVal = document.getElementById('linkage-result').value;
-        if (!resultVal) return;
-
-        if (!currentRecordId) {
-            alert('Record ID not found. Please try submitting again.');
-            return;
-        }
-
-        try {
-            await fetch(`/api/records/${currentRecordId}/update-linkage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ linkage_result: resultVal })
-            });
-            window.open(`/records/${currentRecordId}/export`, '_blank');
-        } catch (err) {
-            console.error('Error updating linkage result:', err);
-            window.open(`/records/${currentRecordId}/export`, '_blank');
+            document.getElementById('btn-modal-proceed-linkage').onclick = () => {
+                genLinkModal.hide();
+                const linkageModalEl = document.getElementById('linkageModal');
+                if (linkageModalEl) {
+                    const linkageModal = new bootstrap.Modal(linkageModalEl);
+                    linkageModal.show();
+                }
+            };
         }
     });
 
