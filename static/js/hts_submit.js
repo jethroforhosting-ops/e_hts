@@ -5,22 +5,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Helper function to reformat YYYY-MM-DD into MMDDYYYY for UIC key
     function formatUICBirthDate(dateStr) {
-    if (!dateStr) return "00000000";
-    
-    // Parse using Javascript Date object or standard YYYY-MM-DD string
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) {
-        // Fallback for manual string parsing if Date object fails
-        const clean = dateStr.replace(/\D/g, '');
-        return clean.length === 8 ? clean : "00000000";
+        if (!dateStr) return "00000000";
+        
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) {
+            const clean = dateStr.replace(/\D/g, '');
+            return clean.length === 8 ? clean : "00000000";
+        }
+
+        const month = String(d.getMonth() + 1).padStart(2, '0'); // MM
+        const day = String(d.getDate()).padStart(2, '0');       // DD
+        const year = String(d.getFullYear());                  // YYYY
+
+        return `${month}${day}${year}`; // Guarantees MMDDYYYY (e.g., 08161998)
     }
-
-    const month = String(d.getMonth() + 1).padStart(2, '0'); // MM
-    const day = String(d.getDate()).padStart(2, '0');       // DD
-    const year = String(d.getFullYear());                  // YYYY
-
-    return `${month}${day}${year}`; // Guarantees MMDDYYYY (e.g., 08161998)
-}
 
     // ==========================================
     // 1. PSGC ADDRESS POPULATION
@@ -248,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 4. CANVAS SIGNATURE DRAW PAD ENGINE (BLACK INK)
+    // 4. CANVAS SIGNATURE DRAW PAD ENGINE
     // ==========================================
     const canvas = document.getElementById("signature-pad");
     const ctx = canvas ? canvas.getContext("2d") : null;
@@ -287,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const pos = getPos(e);
         ctx.lineTo(pos.x, pos.y);
-        ctx.strokeStyle = "#000000"; // Signature drawn in BLACK
+        ctx.strokeStyle = "#000000";
         ctx.lineWidth = 2.5;
         ctx.lineCap = "round";
         ctx.stroke();
@@ -605,3 +603,49 @@ document.addEventListener('DOMContentLoaded', () => {
             linkageModal.show();
         };
     });
+
+    // Save final linkage result and trigger PDF print export window
+    document.getElementById('linkage-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault(); 
+        
+        const resultVal = document.getElementById('linkage-result').value;
+        if (!resultVal) return;
+
+        if (!currentRecordId) {
+            alert('Record ID not found. Please try submitting again.');
+            return;
+        }
+
+        try {
+            await fetch(`/api/records/${currentRecordId}/update-linkage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ linkage_result: resultVal })
+            });
+            window.open(`/records/${currentRecordId}/export`, '_blank');
+        } catch (err) {
+            console.error('Error updating linkage result:', err);
+            window.open(`/records/${currentRecordId}/export`, '_blank');
+        }
+    });
+
+    // ==========================================
+    // 10. NETWORK CONNECTION LISTENERS
+    // ==========================================
+    window.addEventListener("online", () => {
+        const badge = document.getElementById('network-badge');
+        if (badge) {
+            badge.className = 'badge bg-success';
+            badge.innerText = 'ONLINE';
+        }
+        syncIndexedDBToCloud();
+    });
+
+    window.addEventListener("offline", () => {
+        const badge = document.getElementById('network-badge');
+        if (badge) {
+            badge.className = 'badge bg-warning text-dark';
+            badge.innerText = 'OFFLINE (PWA MODE)';
+        }
+    });
+});
