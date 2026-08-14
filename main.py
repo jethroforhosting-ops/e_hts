@@ -189,8 +189,9 @@ def export_manager():
 
 @app.route('/api/my-hts-records', methods=['GET'])
 def my_hts_records():
-    """Fetches records from BOTH local SQLite DB and Cloud Firestore."""
+    """Fetches and streams records from BOTH local SQLite DB and Cloud Firestore."""
     combined_records = []
+    seen_uics = set()
 
     # 1. Fetch from Local SQLite DB
     try:
@@ -203,6 +204,10 @@ def my_hts_records():
             payload = json.loads(row['payload_json'])
             is_synced = bool(row['is_synced'])
             record_id = f"sqlite_{row['id']}"
+            uic_val = payload.get('uic', '')
+
+            if uic_val:
+                seen_uics.add(uic_val)
 
             combined_records.append({
                 'id': record_id,
@@ -217,18 +222,24 @@ def my_hts_records():
     # 2. Fetch directly from Cloud Firestore Collection ('hts_records')
     if db:
         try:
-            records = db.collection('hts_records').order_by('created_at', direction=firestore.Query.DESCENDING).limit(100).stream()
+            # Stream all documents from 'hts_records' collection
+            records = db.collection('hts_records').stream()
+            
             for r in records:
                 r_dict = r.to_dict() or {}
-                # Avoid duplicate rendering if record UIC is already present from SQLite
+                r_id = r.id
                 uic_key = r_dict.get('uic', '')
-                if not uic_key or not any(item['data'].get('uic') == uic_key for item in combined_records):
+
+                # Always add Firestore Cloud records if not already loaded from SQLite
+                if uic_key not in seen_uics:
                     combined_records.append({
-                        'id': r.id,
+                        'id': r_id,
                         'data': r_dict,
                         'source': 'Firebase Cloud',
                         'is_synced': True
                     })
+                    if uic_key:
+                        seen_uics.add(uic_key)
         except Exception as e:
             print(f"Firestore Streaming Error: {e}")
 
