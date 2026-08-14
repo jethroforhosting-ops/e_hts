@@ -91,6 +91,11 @@ FIREBASE_CONFIG = {
 # SQLITE OFFLINE QUEUE API ENDPOINTS
 # ==========================================
 
+@app.route('/')
+def landing_page():
+    """Renders the main choice portal landing page."""
+    return render_template('index.html')
+
 @app.route('/api/sqlite/save-offline', methods=['POST'])
 def save_to_sqlite():
     payload = request.get_json() or {}
