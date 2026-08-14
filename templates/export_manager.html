@@ -224,53 +224,58 @@
                 });
 
                 // 2. RENDER DATABASE RECORDS (SQLITE & FIRESTORE)
-                serverRecords.forEach(record => {
-                    const data = record.data || {};
-                    const id = record.id;
-                    const isSynced = record.is_synced;
-                    const currentResult = data.linkage_result || data.result || '';
+                // Render Database Records (SQLite & Cloud Firestore)
+serverRecords.forEach(record => {
+    const data = record.data || {};
+    const id = record.id;
+    const isSynced = record.is_synced;
+    const isFirebase = record.source === 'Firebase Cloud';
+    const currentResult = data.linkage_result || data.result || '';
 
-                    if (!isSynced) unsyncedCounter++;
+    if (!isSynced) unsyncedCounter++;
 
-                    let uic = data.uic;
-                    if (!uic) {
-                        const mCode = (data.mother_code || '').toUpperCase();
-                        const fCode = (data.father_code || '').toUpperCase();
-                        const bOrder = formatBirthOrder(data.birth_order);
-                        const bDate = formatUICDate(data.birth_date);
-                        uic = `${mCode}${fCode}${bOrder}${bDate}`;
-                    }
+    let uic = data.uic;
+    if (!uic) {
+        const mCode = (data.mother_code || '').toUpperCase();
+        const fCode = (data.father_code || '').toUpperCase();
+        const bOrder = formatBirthOrder(data.birth_order);
+        const bDate = formatUICDate(data.birth_date);
+        uic = `${mCode}${fCode}${bOrder}${bDate}`;
+    }
 
-                    const syncBadge = isSynced 
-                        ? '<span class="badge bg-success">CLOUD SYNCED</span>' 
-                        : '<span class="badge bg-warning text-dark">UNSYNCED</span>';
+    const syncBadge = isSynced 
+        ? '<span class="badge bg-success">CLOUD SYNCED</span>' 
+        : '<span class="badge bg-warning text-dark">UNSYNCED</span>';
 
-                    const storageRemark = isSynced
-                        ? '<span class="badge bg-primary text-white badge-storage">💾 Cloud Database</span>'
-                        : '<span class="badge bg-secondary text-white badge-storage">📁 Local Database (SQLite)</span>';
+    // Highlight Firebase Cloud vs SQLite Local Storage
+    const storageRemark = isFirebase
+        ? '<span class="badge bg-primary text-white badge-storage">🔥 Firebase Cloud Log</span>'
+        : (isSynced
+            ? '<span class="badge bg-info text-dark badge-storage">💾 Cloud Database</span>'
+            : '<span class="badge bg-secondary text-white badge-storage">📁 Local Database (SQLite)</span>');
 
-                    const tr = document.createElement('tr');
-                    tr.className = 'border-bottom border-secondary';
-                    tr.innerHTML = `
-                        <td class="px-3"><input class="form-check-input record-checkbox" type="checkbox" value="${id}"></td>
-                        <td class="px-3">${syncBadge}</td>
-                        <td class="px-3">${storageRemark}</td>
-                        <td class="px-3 font-monospace">${data.test_date || 'N/A'}</td>
-                        <td class="px-3 fw-bold text-amber-custom font-monospace">${uic}</td>
-                        <td class="px-3">
-                            <select class="form-select form-select-sm result-select" data-uic="${uic}" data-local="false">
-                                <option value="" ${!currentResult ? 'selected' : ''}>PENDING EVALUATION</option>
-                                <option value="NONREACTIVE" ${currentResult === 'NONREACTIVE' ? 'selected' : ''}>NONREACTIVE</option>
-                                <option value="REACTIVE" ${currentResult === 'REACTIVE' ? 'selected' : ''}>REACTIVE</option>
-                                <option value="INVALID" ${currentResult === 'INVALID' ? 'selected' : ''}>INVALID</option>
-                            </select>
-                        </td>
-                        <td class="px-3 text-end">
-                            <a href="/records/${id}/export" target="_blank" class="btn btn-sm btn-outline-warning">Print PDF</a>
-                        </td>
-                    `;
-                    tableBody.appendChild(tr);
-                });
+    const tr = document.createElement('tr');
+    tr.className = 'border-bottom border-secondary';
+    tr.innerHTML = `
+        <td class="px-3"><input class="form-check-input record-checkbox" type="checkbox" value="${id}"></td>
+        <td class="px-3">${syncBadge}</td>
+        <td class="px-3">${storageRemark}</td>
+        <td class="px-3 font-monospace">${data.test_date || 'N/A'}</td>
+        <td class="px-3 fw-bold text-amber-custom font-monospace">${uic}</td>
+        <td class="px-3">
+            <select class="form-select form-select-sm result-select" data-uic="${uic}" data-local="false">
+                <option value="" ${!currentResult ? 'selected' : ''}>PENDING EVALUATION</option>
+                <option value="NONREACTIVE" ${currentResult === 'NONREACTIVE' ? 'selected' : ''}>NONREACTIVE</option>
+                <option value="REACTIVE" ${currentResult === 'REACTIVE' ? 'selected' : ''}>REACTIVE</option>
+                <option value="INVALID" ${currentResult === 'INVALID' ? 'selected' : ''}>INVALID</option>
+            </select>
+        </td>
+        <td class="px-3 text-end">
+            <a href="/records/${id}/export" target="_blank" class="btn btn-sm btn-outline-warning">Print PDF</a>
+        </td>
+    `;
+    tableBody.appendChild(tr);
+});
 
                 unsyncedSpan.innerText = unsyncedCounter;
 

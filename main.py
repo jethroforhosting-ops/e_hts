@@ -189,7 +189,7 @@ def export_manager():
 
 @app.route('/api/my-hts-records', methods=['GET'])
 def my_hts_records():
-    """Fetches records from BOTH local SQLite DB and Firestore."""
+    """Fetches records from BOTH local SQLite DB and Cloud Firestore."""
     combined_records = []
 
     # 1. Fetch from Local SQLite DB
@@ -214,22 +214,19 @@ def my_hts_records():
     except Exception as e:
         print(f"SQLite Fetch Error: {e}")
 
-    # 2. Fetch from Remote Firestore DB
+    # 2. Fetch directly from Cloud Firestore Collection ('hts_records')
     if db:
         try:
-            user_email = session.get('user', '')
-            query = db.collection('hts_records')
-            if user_email:
-                query = query.where(filter=FieldFilter('assisted_by', '==', user_email))
-            
-            records = query.stream()
+            records = db.collection('hts_records').order_by('created_at', direction=firestore.Query.DESCENDING).limit(100).stream()
             for r in records:
-                r_dict = r.to_dict()
-                if not any(item['data'].get('uic') == r_dict.get('uic') for item in combined_records):
+                r_dict = r.to_dict() or {}
+                # Avoid duplicate rendering if record UIC is already present from SQLite
+                uic_key = r_dict.get('uic', '')
+                if not uic_key or not any(item['data'].get('uic') == uic_key for item in combined_records):
                     combined_records.append({
                         'id': r.id,
                         'data': r_dict,
-                        'source': 'Firestore Cloud',
+                        'source': 'Firebase Cloud',
                         'is_synced': True
                     })
         except Exception as e:
